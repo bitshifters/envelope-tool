@@ -158,3 +158,27 @@ canvas {
   display: block;
   border-radius: 4px;
 }
+
+.transport {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preset-btn {
+  background: #21262d;
+  color: #c9d1d9;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 4px 10px;
+  margin: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.preset-btn:hover { background: #30363d; border-color: #58a6ff; }

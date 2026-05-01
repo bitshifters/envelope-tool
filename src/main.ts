@@ -10,6 +10,7 @@ import {
 } from "./envelope";
 import { render } from "./visualizer";
 import { play, playheadFraction, stop } from "./audio";
+import { PRESETS, type Preset } from "./presets";
 
 interface FieldSpec {
   key: keyof Envelope;
@@ -188,6 +189,33 @@ soundLine.addEventListener("input", () => {
   }
   refresh("sound");
 });
+
+function loadPreset(p: Preset): void {
+  Object.assign(env, p.env);
+  Object.assign(sound, p.sound);
+  for (const f of ENV_FIELDS) {
+    const input = envInputs.get(f.key);
+    if (input) input.value = String(env[f.key]);
+  }
+  for (const f of SOUND_FIELDS) {
+    const input = soundInputs.get(f.key);
+    if (input) input.value = String(sound[f.key]);
+  }
+  envelopeLine.classList.remove("invalid");
+  soundLine.classList.remove("invalid");
+  refresh();
+}
+
+const presetsContainer = document.getElementById("presets") as HTMLElement;
+for (const p of PRESETS) {
+  const btn = document.createElement("button");
+  btn.className = "preset-btn";
+  btn.type = "button";
+  btn.textContent = p.name;
+  btn.title = p.description;
+  btn.addEventListener("click", () => loadPreset(p));
+  presetsContainer.appendChild(btn);
+}
 
 document.getElementById("play")!.addEventListener("click", () => {
   play(currentSamples, sound.pitch);

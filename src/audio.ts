@@ -49,9 +49,14 @@ export function play(samples: Sample[], basePitch: number): void {
   playStart = t0;
   playDuration = samples.length * CS;
   osc.onended = () => {
-    if (activeNodes && activeNodes.osc === osc) activeNodes = null;
-    playStart = null;
-    playDuration = null;
+    // Only clear shared playback state if this osc is still the active one;
+    // otherwise a freshly-started note would have its timing wiped when the
+    // previously-stopped osc's onended fired late.
+    if (activeNodes && activeNodes.osc === osc) {
+      activeNodes = null;
+      playStart = null;
+      playDuration = null;
+    }
   };
 }
 
