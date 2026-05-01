@@ -22,7 +22,7 @@ interface FieldSpec {
 }
 
 const PITCH_FIELDS: FieldSpec[] = [
-  { key: "t",   code: "T",   label: "Step length",   min: 0,    max: 255, hint: "duration of each pitch step in 1/100 s. Add 128 to auto-repeat the pitch envelope." },
+  { key: "t",   code: "T",   label: "Step length",   min: 0,    max: 255, hint: "duration of each pitch step in 1/100 s. T=1..127 auto-repeats the pitch envelope; T=128..255 single sweep (holds final pitch)." },
   { key: "pi1", code: "PI1", label: "Section 1 Δ",   min: -128, max: 127, hint: "pitch change per step in section 1" },
   { key: "pn1", code: "PN1", label: "Section 1 steps", min: 0,  max: 255, hint: "number of steps in section 1" },
   { key: "pi2", code: "PI2", label: "Section 2 Δ",   min: -128, max: 127, hint: "pitch change per step in section 2" },

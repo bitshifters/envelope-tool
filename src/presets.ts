@@ -14,8 +14,9 @@ export interface Preset {
   sound: SoundPreset;
 }
 
-// `T` values >= 128 enable auto-repeat of the pitch envelope (bit 7 set).
-// 132 = 128 + 4 cs per step, 134 = 128 + 6, etc.
+// `T` in 1..127 auto-repeats the pitch envelope for the duration of the
+// note; `T` in 128..255 (bit 7 set) is a single sweep that holds at the
+// final pitch. Looping presets below use plain low T values.
 export const PRESETS: Preset[] = [
   {
     name: "Piano",
@@ -62,28 +63,28 @@ export const PRESETS: Preset[] = [
   {
     name: "Vibrato",
     description: "Looping ±½-semitone wobble around the note",
-    env: { n: 1, t: 130, pi1: 1, pi2: -1, pi3: 1, pn1: 2, pn2: 4, pn3: 2,
+    env: { n: 1, t: 2, pi1: 1, pi2: -1, pi3: 1, pn1: 2, pn2: 4, pn3: 2,
            aa: 127, ad: -2, as: -1, ar: -10, ala: 126, ald: 100 },
     sound: { channel: 1, amplitude: 1, pitch: 100, duration: 60 },
   },
   {
     name: "Trill",
     description: "Looping alternation between two notes a whole step apart",
-    env: { n: 1, t: 136, pi1: 8, pi2: -8, pi3: 0, pn1: 1, pn2: 1, pn3: 0,
+    env: { n: 1, t: 8, pi1: 8, pi2: -8, pi3: 0, pn1: 1, pn2: 1, pn3: 0,
            aa: 127, ad: -2, as: 0, ar: -10, ala: 126, ald: 100 },
     sound: { channel: 1, amplitude: 1, pitch: 100, duration: 60 },
   },
   {
     name: "Siren",
     description: "Looping octave sweep up and back down",
-    env: { n: 1, t: 132, pi1: 2, pi2: -2, pi3: 0, pn1: 24, pn2: 24, pn3: 0,
+    env: { n: 1, t: 4, pi1: 2, pi2: -2, pi3: 0, pn1: 24, pn2: 24, pn3: 0,
            aa: 127, ad: -2, as: 0, ar: -2, ala: 126, ald: 100 },
     sound: { channel: 1, amplitude: 1, pitch: 80, duration: 80 },
   },
   {
     name: "Arpeggio",
     description: "Looping major triad: root → 3rd → 5th",
-    env: { n: 1, t: 138, pi1: 16, pi2: 12, pi3: -28, pn1: 1, pn2: 1, pn3: 1,
+    env: { n: 1, t: 10, pi1: 16, pi2: 12, pi3: -28, pn1: 1, pn2: 1, pn3: 1,
            aa: 127, ad: -2, as: 0, ar: -10, ala: 126, ald: 100 },
     sound: { channel: 1, amplitude: 1, pitch: 80, duration: 100 },
   },
@@ -97,7 +98,7 @@ export const PRESETS: Preset[] = [
   {
     name: "Wobble",
     description: "Slow looping pitch wobble, sustained pad timbre",
-    env: { n: 1, t: 140, pi1: 2, pi2: -2, pi3: 0, pn1: 4, pn2: 4, pn3: 0,
+    env: { n: 1, t: 12, pi1: 2, pi2: -2, pi3: 0, pn1: 4, pn2: 4, pn3: 0,
            aa: 20, ad: -1, as: 0, ar: -5, ala: 110, ald: 90 },
     sound: { channel: 1, amplitude: 1, pitch: 90, duration: 100 },
   },

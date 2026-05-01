@@ -43,7 +43,10 @@ export interface Sample {
   phase: "attack" | "decay" | "sustain" | "release";
 }
 
-const PITCH_REPEAT_BIT = 0x80;
+// Per the BBC User Guide and MOS source: T in 1..127 auto-repeats the pitch
+// envelope for the lifetime of the note; T in 128..255 (bit 7 set) is a
+// single sweep that holds at the final pitch when sections are exhausted.
+const PITCH_NO_REPEAT_BIT = 0x80;
 
 /**
  * Expand an envelope into a stream of per-centisecond samples for a given
@@ -64,7 +67,7 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
 
   // Pitch envelope state.
   const tStep = env.t & 0x7f;          // step length in centiseconds
-  const repeat = (env.t & PITCH_REPEAT_BIT) !== 0;
+  const repeat = (env.t & PITCH_NO_REPEAT_BIT) === 0;
   const sections: Array<[number, number]> = [
     [env.pi1, env.pn1],
     [env.pi2, env.pn2],
@@ -75,19 +78,34 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   let stepInSection = 0;
   let csUntilNextStep = Math.max(1, tStep);
 
+  // BBC-accurate pitch envelope advance. Subtleties:
+  //   - When a section's PN is exhausted but the next section has PN > 0, the
+  //     transition is "free": we immediately apply the next section's first
+  //     step in the same tick (the OS effectively decrements sectC, advances
+  //     the section index, and applies the next step before returning).
+  //   - When the next section has PN=0, the OS hits `BEQ skipToNextChannel`
+  //     after loading the empty section, which costs the full step countdown
+  //     (T cs of dead time) before the next section is reached. We model this
+  //     by *not* recursing into a PN=0 section — just advance and return, so
+  //     the caller's csUntilNextStep reset gives the dead time.
+  //   - On loop wrap (sectionIdx past the end with repeat enabled) the OS
+  //     resets offset and runs the same tick's step from section 0, so the
+  //     wrap itself doesn't cost extra time (matches a normal step interval).
   const stepPitch = () => {
     if (tStep === 0) return; // T=0 disables the pitch envelope
     if (sectionIdx >= sections.length) {
-      if (repeat) {
-        sectionIdx = 0;
-        stepInSection = 0;
-        pitchOffset = 0;
-      } else {
-        return;
-      }
+      if (!repeat) return;
+      sectionIdx = 0;
+      stepInSection = 0;
+      pitchOffset = 0;
+      // Fall through to apply section 0's first step this tick.
     }
-    const section = sections[sectionIdx]!;
-    const [pi, pn] = section;
+    const [pi, pn] = sections[sectionIdx]!;
+    if (pn === 0) {
+      // Empty section: advance and return (consumes T cs).
+      sectionIdx += 1;
+      return;
+    }
     if (stepInSection >= pn) {
       sectionIdx += 1;
       stepInSection = 0;

@@ -18,7 +18,7 @@ Authoritative reference for the OS sound implementation: https://tobylobster.git
 
 The BBC `ENVELOPE` statement takes 14 parameters (`N, T, PI1, PI2, PI3, PN1, PN2, PN3, AA, AD, AS, AR, ALA, ALD`). Anything in the UI must round-trip cleanly to/from this 14-value form, since that is what users copy into BBC BASIC. Key constraints to preserve in any model:
 
-- `T` is the length of each pitch step in 1/100 s units; bit 7 controls auto-repeat of the pitch envelope.
+- `T` is the length of each pitch step in 1/100 s units. Polarity is the inverse of what you'd guess: `T = 1..127` (bit 7 clear) **auto-repeats** the pitch envelope for the duration of the note; `T = 128..255` (bit 7 set) is a **single sweep** that holds the final pitch. Verified against the MOS source — see https://tobylobster.github.io/mos/mos/S-s16.html §6 (the `BMI` after the last pitch section skips the loop reset when bit 7 is set).
 - Pitch (`PI1..3`, `PN1..3`) is a stepped, signed change-per-step model — *not* a continuous frequency curve. Visualisation should show the stepped shape, not interpolate it away.
 - Amplitude (`AA, AD, AS, AR`) values are signed change-per-step; `ALA` is attack target level, `ALD` is the level at the end of decay (start of sustain). Sustain holds until the `SOUND` duration elapses, then release runs. This differs from a classical ADSR — keep the BBC semantics, don't silently substitute a generic ADSR model.
 - The OS updates envelopes every 1/100 s (the centisecond tick). Time axes in visualisations should use that as the natural unit.
