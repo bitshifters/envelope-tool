@@ -9,7 +9,7 @@ import {
   type Envelope,
 } from "./envelope";
 import { render } from "./visualizer";
-import { play, stop } from "./audio";
+import { play, playheadFraction, stop } from "./audio";
 
 interface FieldSpec {
   key: keyof Envelope;
@@ -71,11 +71,28 @@ const soundInputs = new Map<keyof SoundParams, HTMLInputElement>();
  * canvas, but writing back a re-formatted version of the same statement
  * mid-edit moves the caret and feels broken.
  */
+let currentSamples: ReturnType<typeof expand> = [];
+let playheadRaf: number | null = null;
+
 function refresh(skipLine?: "envelope" | "sound"): void {
-  const samples = expand(env, sound.amplitude, sound.duration);
-  render(canvas, samples);
+  currentSamples = expand(env, sound.amplitude, sound.duration);
+  render(canvas, currentSamples, playheadFraction());
   if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
   if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
+}
+
+function animatePlayhead(): void {
+  if (playheadRaf !== null) return;
+  const tick = () => {
+    const f = playheadFraction();
+    render(canvas, currentSamples, f);
+    if (f === null) {
+      playheadRaf = null;
+      return;
+    }
+    playheadRaf = requestAnimationFrame(tick);
+  };
+  playheadRaf = requestAnimationFrame(tick);
 }
 
 function makeNumberField(
@@ -155,11 +172,18 @@ soundLine.addEventListener("input", () => {
 });
 
 document.getElementById("play")!.addEventListener("click", () => {
-  const samples = expand(env, sound.amplitude, sound.duration);
-  play(samples, sound.pitch);
+  play(currentSamples, sound.pitch);
+  animatePlayhead();
 });
 
-document.getElementById("stop")!.addEventListener("click", stop);
+document.getElementById("stop")!.addEventListener("click", () => {
+  stop();
+  if (playheadRaf !== null) {
+    cancelAnimationFrame(playheadRaf);
+    playheadRaf = null;
+  }
+  render(canvas, currentSamples, null);
+});
 
 for (const btn of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
   btn.addEventListener("click", async () => {

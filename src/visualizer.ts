@@ -7,7 +7,7 @@ const PHASE_COLOURS: Record<Sample["phase"], string> = {
   release: "#ff8fa3",
 };
 
-export function render(canvas: HTMLCanvasElement, samples: Sample[]): void {
+export function render(canvas: HTMLCanvasElement, samples: Sample[], playhead: number | null = null): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const { width, height } = canvas;
@@ -85,4 +85,16 @@ export function render(canvas: HTMLCanvasElement, samples: Sample[]): void {
     else ctx.lineTo(x, y);
   }
   ctx.stroke();
+
+  if (playhead !== null && playhead >= 0 && playhead <= 1) {
+    const x = padding + playhead * plotW;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, ampTop);
+    ctx.lineTo(x, ampTop + halfH);
+    ctx.moveTo(x, pitchTop);
+    ctx.lineTo(x, pitchTop + halfH);
+    ctx.stroke();
+  }
 }

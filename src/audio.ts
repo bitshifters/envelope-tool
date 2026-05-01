@@ -4,6 +4,8 @@ const CS = 0.01; // one centisecond, in seconds
 
 let ctx: AudioContext | null = null;
 let activeNodes: { osc: OscillatorNode; gain: GainNode } | null = null;
+let playStart: number | null = null;
+let playDuration: number | null = null;
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -44,8 +46,12 @@ export function play(samples: Sample[], basePitch: number): void {
   osc.stop(tEnd + 0.05);
 
   activeNodes = { osc, gain };
+  playStart = t0;
+  playDuration = samples.length * CS;
   osc.onended = () => {
     if (activeNodes && activeNodes.osc === osc) activeNodes = null;
+    playStart = null;
+    playDuration = null;
   };
 }
 
@@ -57,4 +63,18 @@ export function stop(): void {
     // already stopped
   }
   activeNodes = null;
+  playStart = null;
+  playDuration = null;
+}
+
+/**
+ * Fraction (0..1) of the way through the currently-playing note, or null
+ * when nothing is playing. Used to drive the visualiser playhead.
+ */
+export function playheadFraction(): number | null {
+  if (playStart === null || playDuration === null || !ctx) return null;
+  const t = ctx.currentTime - playStart;
+  if (t < 0) return 0;
+  if (t >= playDuration) return null;
+  return t / playDuration;
 }
