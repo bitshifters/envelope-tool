@@ -61,6 +61,8 @@ const SOUND_FIELDS: { key: keyof SoundParams; code: string; label: string; min: 
 const env: Envelope = { ...DEFAULT_ENVELOPE };
 const sound: SoundParams = { ...DEFAULT_SOUND };
 
+let holdEnabled = false;
+
 // Capture before refresh() rewrites the URL via history.replaceState (which
 // strips presence-only params like `play`).
 const autoplayRequested = new URLSearchParams(location.search).has("play");
@@ -70,9 +72,13 @@ const canvas = document.getElementById("viz") as HTMLCanvasElement;
 const envelopeLine = document.getElementById("envelope-line") as HTMLInputElement;
 const soundLine = document.getElementById("sound-line") as HTMLInputElement;
 const envNInput = document.getElementById("env-n") as HTMLInputElement;
+const holdInput = document.getElementById("hold") as HTMLInputElement;
 const pitchGrid = document.getElementById("pitch-grid") as HTMLElement;
 const ampGrid = document.getElementById("amp-grid") as HTMLElement;
 const soundGrid = document.getElementById("sound-grid") as HTMLElement;
+
+// Sync the checkbox to whatever loadFromUrlParams() may have set above.
+holdInput.checked = holdEnabled;
 
 const envInputs = new Map<keyof Envelope, HTMLInputElement>();
 const soundInputs = new Map<keyof SoundParams, HTMLInputElement>();
@@ -103,10 +109,10 @@ function setEnvelopeNumber(n: number): void {
 }
 
 function refresh(skipLine?: "envelope" | "sound"): void {
-  currentSamples = expand(env, sound.amplitude, sound.duration);
+  currentSamples = expand(env, sound.amplitude, sound.duration, holdEnabled);
   render(canvas, currentSamples, sound.pitch, playheadFraction());
   if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
-  if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
+  if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration, holdEnabled);
   updateUrlParams();
   // Any state change clears the active preset; loadPreset re-sets it after
   // its own refresh() call.
@@ -123,6 +129,7 @@ function updateUrlParams(): void {
                      env.aa, env.ad, env.as, env.ar, env.ala, env.ald].join(",");
   const soundValues = [sound.channel, sound.amplitude, sound.pitch, sound.duration].join(",");
   const params = new URLSearchParams({ env: envValues, sound: soundValues });
+  if (holdEnabled) params.set("hold", "1");
   history.replaceState(null, "", `?${params.toString()}`);
 }
 
@@ -142,6 +149,7 @@ function loadFromUrlParams(): void {
     const parsed = parseSound(soundStr);
     if (parsed) Object.assign(sound, parsed);
   }
+  if (params.has("hold")) holdEnabled = true;
 }
 
 function animatePlayhead(): void {
@@ -253,6 +261,17 @@ soundLine.addEventListener("input", () => {
     return;
   }
   soundLine.classList.remove("invalid");
+  // BBC BASIC duration -1 means "play forever". Map that to our loop flag
+  // and keep a reasonable per-cycle duration so the visualisation has
+  // something to show.
+  if (parsed.duration < 0) {
+    holdEnabled = true;
+    holdInput.checked = true;
+    parsed.duration = sound.duration > 0 ? sound.duration : 20;
+  } else {
+    holdEnabled = false;
+    holdInput.checked = false;
+  }
   Object.assign(sound, parsed);
   setEnvelopeNumber(sound.amplitude);
   for (const f of SOUND_FIELDS) {
@@ -273,6 +292,10 @@ function setActivePreset(idx: number | null): void {
 function loadPreset(p: Preset, idx: number): void {
   Object.assign(env, p.env);
   Object.assign(sound, p.sound);
+  // Apply the preset's hold flag (defaults to false). UG #8/#9 set it
+  // because their envelopes don't naturally terminate.
+  holdEnabled = p.hold === true;
+  holdInput.checked = holdEnabled;
   setEnvelopeNumber(sound.amplitude);
   for (const f of ENV_FIELDS) {
     const input = envInputs.get(f.key);
@@ -300,18 +323,37 @@ PRESETS.forEach((p, idx) => {
   presetButtons.push(btn);
 });
 
-document.getElementById("play")!.addEventListener("click", () => {
+function playOnce(): void {
+  // The sample stream itself is long when holdEnabled (expand returns a
+  // ~15 s buffer with the envelope's pitch and amp continuing to evolve),
+  // so audio playback is just a single play() call — no setTimeout-based
+  // re-trigger. Mirrors BBC SOUND duration -1 semantics: envelope keeps
+  // running, doesn't restart from the top.
   play(currentSamples, sound.pitch);
   animatePlayhead();
-});
+}
 
-document.getElementById("stop")!.addEventListener("click", () => {
+function stopAll(): void {
   stop();
   if (playheadRaf !== null) {
     cancelAnimationFrame(playheadRaf);
     playheadRaf = null;
   }
   render(canvas, currentSamples, sound.pitch, null);
+}
+
+document.getElementById("play")!.addEventListener("click", () => {
+  playOnce();
+});
+
+document.getElementById("stop")!.addEventListener("click", () => {
+  stopAll();
+});
+
+holdInput.addEventListener("change", () => {
+  holdEnabled = holdInput.checked;
+  // Reflect in the SOUND BASIC line and URL.
+  refresh();
 });
 
 document.getElementById("share-link")!.addEventListener("click", async (e) => {
@@ -337,7 +379,7 @@ document.getElementById("run-emulator")!.addEventListener("click", () => {
   // jsbeeb (bbc.xania.org) takes URL-encoded BASIC via embedBasic, with
   // &autorun to type RUN after tokenising. Two numbered lines are enough:
   // ENVELOPE registers the envelope, SOUND queues the note.
-  const program = `10 ${formatBasic(env)}\n20 ${formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration)}\n`;
+  const program = `10 ${formatBasic(env)}\n20 ${formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration, holdEnabled)}\n`;
   const url = `https://bbc.xania.org/?embedBasic=${encodeURIComponent(program)}&autorun`;
   window.open(url, "_blank", "noopener,noreferrer");
 });

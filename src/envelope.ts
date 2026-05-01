@@ -56,7 +56,7 @@ const PITCH_NO_REPEAT_BIT = 0x80;
  * The returned stream covers attack + decay + sustain + release, i.e. the
  * full audible lifetime of the note.
  */
-export function expand(env: Envelope, soundAmplitude: number, soundDuration: number): Sample[] {
+export function expand(env: Envelope, soundAmplitude: number, soundDuration: number, hold = false): Sample[] {
   const samples: Sample[] = [];
 
   // SOUND amplitude argument: 0 = silence, -15..-1 = static volume, 1..4 = envelope number.
@@ -64,6 +64,14 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   // at 0 and runs the full attack/decay/sustain/release cycle. For static negative amplitudes
   // the envelope is bypassed entirely; we still let callers preview the envelope shape.
   const useEnvelope = soundAmplitude > 0;
+
+  // Hold mode mirrors BBC SOUND duration -1: the envelope keeps running its
+  // attack/decay/sustain phases without ever transitioning to release. Amp,
+  // pitch and the looping pitch envelope all keep evolving exactly as they
+  // would within the SOUND duration; the note just doesn't terminate. We
+  // generate ~15 s of audio so the cycling state is audible/visible — the
+  // user can press Stop or replay to extend.
+  const HOLD_NOTE_CS = 1500;
 
   // Pitch envelope state.
   const tStep = env.t & 0x7f;          // step length in centiseconds
@@ -118,7 +126,7 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
 
   // Amplitude envelope state.
   // Phases run in order: attack -> decay -> sustain (until note ends) -> release (to 0).
-  const noteCentiseconds = soundDuration * 5; // 1/20s -> 1/100s
+  const noteCentiseconds = hold ? HOLD_NOTE_CS : soundDuration * 5; // 1/20s -> 1/100s
   let amplitude = 0;
   let phase: Sample["phase"] = "attack";
   let csElapsed = 0;
@@ -143,9 +151,18 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
     // SOUND duration end forces release from any non-release phase. The check
     // is per-cs so release starts at the right cs even if it's between
     // envelope ticks; the actual release amp change happens on the next tick.
-    if (useEnvelope && phase !== "release" && csElapsed + 1 >= noteCentiseconds) {
-      phase = "release";
-      if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
+    // In hold mode (BBC SOUND duration -1) the envelope keeps running its
+    // attack/decay/sustain phases without ever transitioning to release —
+    // we just stop emitting samples at the bound.
+    if (useEnvelope && csElapsed + 1 >= noteCentiseconds) {
+      if (hold) {
+        samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
+        return samples;
+      }
+      if (phase !== "release") {
+        phase = "release";
+        if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
+      }
     }
 
     // Envelope tick: pitch step *and* amplitude envelope advance every T cs.
@@ -237,9 +254,13 @@ export function formatBasic(env: Envelope): string {
   return `ENVELOPE ${parts.join(",")}`;
 }
 
-/** Format a BBC BASIC `SOUND` statement. */
-export function formatSound(channel: number, amplitude: number, pitch: number, duration: number): string {
-  return `SOUND ${channel},${amplitude},${pitch},${duration}`;
+/**
+ * Format a BBC BASIC `SOUND` statement. `hold=true` emits duration -1, which
+ * is BBC BASIC syntax for "envelope keeps running until interrupted".
+ */
+export function formatSound(channel: number, amplitude: number, pitch: number, duration: number, hold = false): string {
+  const dur = hold ? -1 : duration;
+  return `SOUND ${channel},${amplitude},${pitch},${dur}`;
 }
 
 /**

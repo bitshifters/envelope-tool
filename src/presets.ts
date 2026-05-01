@@ -12,6 +12,9 @@ export interface Preset {
   description: string;
   env: Envelope;
   sound: SoundPreset;
+  /** True for envelopes that don't naturally terminate — sets the Hold
+   *  checkbox so the audio keeps the envelope running indefinitely. */
+  hold?: boolean;
 }
 
 // `T` in 1..127 auto-repeats the pitch envelope for the duration of the
@@ -240,6 +243,7 @@ export const PRESETS: Preset[] = [
     env: { n: 1, t: 1, pi1: -26, pi2: -36, pi3: -45, pn1: 255, pn2: 255, pn3: 255,
            aa: 127, ad: 0, as: 0, ar: 0, ala: 126, ald: 0 },
     sound: { channel: 1, amplitude: 1, pitch: 1, duration: 1 },
+    hold: true,
   },
   {
     name: "UG #9 ramp",
@@ -247,5 +251,6 @@ export const PRESETS: Preset[] = [
     env: { n: 2, t: 3, pi1: 2, pi2: -4, pi3: 4, pn1: 50, pn2: 50, pn3: 50,
            aa: 127, ad: 0, as: 0, ar: 0, ala: 126, ald: 0 },
     sound: { channel: 1, amplitude: 2, pitch: 1, duration: 10 },
+    hold: true,
   },
 ];

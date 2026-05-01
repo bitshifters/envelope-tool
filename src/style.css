@@ -198,7 +198,18 @@ canvas {
   display: flex;
   gap: 8px;
   margin: 12px 0;
+  align-items: center;
 }
+.hold-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #c9d1d9;
+  cursor: pointer;
+  user-select: none;
+}
+.hold-toggle input { cursor: pointer; }
 
 .presets {
   display: flex;
