@@ -1,5 +1,5 @@
 import "./style.css";
-import { DEFAULT_ENVELOPE, expand, formatBasic, type Envelope } from "./envelope";
+import { DEFAULT_ENVELOPE, expand, formatBasic, formatSound, type Envelope } from "./envelope";
 import { render } from "./visualizer";
 import { play, stop } from "./audio";
 
@@ -47,14 +47,16 @@ const env: Envelope = { ...DEFAULT_ENVELOPE };
 const sound: SoundParams = { ...DEFAULT_SOUND };
 
 const canvas = document.getElementById("viz") as HTMLCanvasElement;
-const basicLine = document.getElementById("basic-line") as HTMLElement;
+const envelopeLine = document.getElementById("envelope-line") as HTMLElement;
+const soundLine = document.getElementById("sound-line") as HTMLElement;
 const envGrid = document.getElementById("envelope-grid") as HTMLElement;
 const soundGrid = document.getElementById("sound-grid") as HTMLElement;
 
 function refresh(): void {
   const samples = expand(env, sound.amplitude, sound.duration);
   render(canvas, samples);
-  basicLine.textContent = formatBasic(env);
+  envelopeLine.textContent = formatBasic(env);
+  soundLine.textContent = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
 }
 
 function makeNumberField<T>(
@@ -107,5 +109,27 @@ document.getElementById("play")!.addEventListener("click", () => {
 });
 
 document.getElementById("stop")!.addEventListener("click", stop);
+
+for (const btn of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
+  btn.addEventListener("click", async () => {
+    const targetId = btn.dataset["copy"];
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const text = target.textContent ?? "";
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.classList.add("copied");
+      setTimeout(() => btn.classList.remove("copied"), 1200);
+    } catch {
+      // Clipboard API can fail in non-secure contexts; fall back to selection.
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+  });
+}
 
 refresh();

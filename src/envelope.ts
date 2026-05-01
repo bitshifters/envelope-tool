@@ -184,6 +184,11 @@ export function formatBasic(env: Envelope): string {
   return `ENVELOPE ${parts.join(",")}`;
 }
 
+/** Format a BBC BASIC `SOUND` statement. */
+export function formatSound(channel: number, amplitude: number, pitch: number, duration: number): string {
+  return `SOUND ${channel},${amplitude},${pitch},${duration}`;
+}
+
 /**
  * Map a BBC pitch byte (0..255, 4 units per semitone) to Hz. The BBC Micro
  * sound chip uses a divider scheme; this is a musically-accurate

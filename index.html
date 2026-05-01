@@ -18,12 +18,19 @@
       <section class="panel" id="envelope-panel">
         <h2>Envelope (N=1)</h2>
         <div class="grid" id="envelope-grid"></div>
-        <pre class="basic-line"><code id="basic-line">ENVELOPE 1, ...</code></pre>
+        <div class="basic-row">
+          <pre class="basic-line"><code id="envelope-line">ENVELOPE 1, ...</code></pre>
+          <button class="copy-btn" data-copy="envelope-line" title="Copy ENVELOPE statement" aria-label="Copy ENVELOPE statement"></button>
+        </div>
       </section>
 
       <section class="panel">
         <h2>Sound parameters</h2>
         <div class="grid" id="sound-grid"></div>
+        <div class="basic-row">
+          <pre class="basic-line"><code id="sound-line">SOUND 1, ...</code></pre>
+          <button class="copy-btn" data-copy="sound-line" title="Copy SOUND statement" aria-label="Copy SOUND statement"></button>
+        </div>
         <button id="play">Play</button>
         <button id="stop">Stop</button>
       </section>
