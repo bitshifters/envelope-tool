@@ -90,6 +90,9 @@ function refresh(skipLine?: "envelope" | "sound"): void {
   if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
   if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
   updateUrlParams();
+  // Any state change clears the active preset; loadPreset re-sets it after
+  // its own refresh() call.
+  setActivePreset(null);
 }
 
 /**
@@ -224,7 +227,15 @@ soundLine.addEventListener("input", () => {
   refresh("sound");
 });
 
-function loadPreset(p: Preset): void {
+const presetButtons: HTMLButtonElement[] = [];
+
+function setActivePreset(idx: number | null): void {
+  for (let i = 0; i < presetButtons.length; i++) {
+    presetButtons[i]!.classList.toggle("active", i === idx);
+  }
+}
+
+function loadPreset(p: Preset, idx: number): void {
   Object.assign(env, p.env);
   Object.assign(sound, p.sound);
   for (const f of ENV_FIELDS) {
@@ -238,18 +249,20 @@ function loadPreset(p: Preset): void {
   envelopeLine.classList.remove("invalid");
   soundLine.classList.remove("invalid");
   refresh();
+  setActivePreset(idx);
 }
 
 const presetsContainer = document.getElementById("presets") as HTMLElement;
-for (const p of PRESETS) {
+PRESETS.forEach((p, idx) => {
   const btn = document.createElement("button");
   btn.className = "preset-btn";
   btn.type = "button";
   btn.textContent = p.name;
   btn.title = p.description;
-  btn.addEventListener("click", () => loadPreset(p));
+  btn.addEventListener("click", () => loadPreset(p, idx));
   presetsContainer.appendChild(btn);
-}
+  presetButtons.push(btn);
+});
 
 document.getElementById("play")!.addEventListener("click", () => {
   play(currentSamples, sound.pitch);

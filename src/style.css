@@ -186,3 +186,5 @@ canvas {
 .preset-btn:hover { background: #30363d; border-color: #58a6ff; }
 .preset-btn:focus { outline: none; }
 .preset-btn:focus-visible { outline: 2px solid #58a6ff; outline-offset: 1px; }
+.preset-btn.active { background: #1f6feb; border-color: #58a6ff; color: white; }
+.preset-btn.active:hover { background: #388bfd; }
