@@ -231,6 +231,15 @@ document.getElementById("stop")!.addEventListener("click", () => {
   render(canvas, currentSamples, sound.pitch, null);
 });
 
+document.getElementById("run-emulator")!.addEventListener("click", () => {
+  // jsbeeb (bbc.xania.org) takes URL-encoded BASIC via embedBasic, with
+  // &autorun to type RUN after tokenising. Two numbered lines are enough:
+  // ENVELOPE registers the envelope, SOUND queues the note.
+  const program = `10 ${formatBasic(env)}\n20 ${formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration)}\n`;
+  const url = `https://bbc.xania.org/?embedBasic=${encodeURIComponent(program)}&autorun`;
+  window.open(url, "_blank", "noopener,noreferrer");
+});
+
 for (const btn of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
   btn.addEventListener("click", async () => {
     const targetId = btn.dataset["copy"];
