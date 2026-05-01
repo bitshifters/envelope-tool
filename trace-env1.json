@@ -1,0 +1,434 @@
+[
+  {
+    "cycle": 0,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 100,
+    "byte": 208,
+    "byteHex": "0xd0",
+    "channel": 2,
+    "kind": "vol",
+    "field": 0,
+    "usedLatch": false
+  },
+  {
+    "cycle": 404,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 800,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 900,
+    "byte": 210,
+    "byteHex": "0xd2",
+    "channel": 2,
+    "kind": "vol",
+    "field": 2,
+    "usedLatch": false
+  },
+  {
+    "cycle": 159416,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 159800,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 159900,
+    "byte": 211,
+    "byteHex": "0xd3",
+    "channel": 2,
+    "kind": "vol",
+    "field": 3,
+    "usedLatch": false
+  },
+  {
+    "cycle": 319418,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 319814,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 319914,
+    "byte": 212,
+    "byteHex": "0xd4",
+    "channel": 2,
+    "kind": "vol",
+    "field": 4,
+    "usedLatch": false
+  },
+  {
+    "cycle": 479430,
+    "byte": 213,
+    "byteHex": "0xd5",
+    "channel": 2,
+    "kind": "vol",
+    "field": 5,
+    "usedLatch": false
+  },
+  {
+    "cycle": 639416,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 639800,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 639900,
+    "byte": 215,
+    "byteHex": "0xd7",
+    "channel": 2,
+    "kind": "vol",
+    "field": 7,
+    "usedLatch": false
+  },
+  {
+    "cycle": 799414,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 799810,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 799910,
+    "byte": 216,
+    "byteHex": "0xd8",
+    "channel": 2,
+    "kind": "vol",
+    "field": 8,
+    "usedLatch": false
+  },
+  {
+    "cycle": 959414,
+    "byte": 217,
+    "byteHex": "0xd9",
+    "channel": 2,
+    "kind": "vol",
+    "field": 9,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1119416,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1119800,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 1119900,
+    "byte": 218,
+    "byteHex": "0xda",
+    "channel": 2,
+    "kind": "vol",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1279430,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1279826,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 1279926,
+    "byte": 220,
+    "byteHex": "0xdc",
+    "channel": 2,
+    "kind": "vol",
+    "field": 12,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1439420,
+    "byte": 221,
+    "byteHex": "0xdd",
+    "channel": 2,
+    "kind": "vol",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1599414,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1599798,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 1599898,
+    "byte": 222,
+    "byteHex": "0xde",
+    "channel": 2,
+    "kind": "vol",
+    "field": 14,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1759414,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1759810,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 1759910,
+    "byte": 223,
+    "byteHex": "0xdf",
+    "channel": 2,
+    "kind": "vol",
+    "field": 15,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1919444,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2079724,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 2079824,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2239720,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 2239820,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2559590,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 2559690,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2719600,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 2719700,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3039588,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 3039688,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3199598,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 3199698,
+    "byte": 205,
+    "byteHex": "0xcd",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3519590,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  },
+  {
+    "cycle": 3519690,
+    "byte": 202,
+    "byteHex": "0xca",
+    "channel": 2,
+    "kind": "periodLo",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3679894,
+    "byte": 14,
+    "byteHex": "0x0e",
+    "channel": 2,
+    "kind": "periodHi",
+    "field": 14,
+    "usedLatch": true
+  }
+]

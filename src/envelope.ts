@@ -134,74 +134,82 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   const MAX_RELEASE_CS = 200;
   let releaseStartedAt = -1;
 
+
+  let zeroAmpCount = 0;
+
   while (csElapsed < MAX_CS) {
     samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
 
-    // Pitch tick.
+    // SOUND duration end forces release from any non-release phase. The check
+    // is per-cs so release starts at the right cs even if it's between
+    // envelope ticks; the actual release amp change happens on the next tick.
+    if (useEnvelope && phase !== "release" && csElapsed + 1 >= noteCentiseconds) {
+      phase = "release";
+      if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
+    }
+
+    // Envelope tick: pitch step *and* amplitude envelope advance every T cs.
+    // The trace from a real BBC OS shows amp updates land at exactly the same
+    // cadence as the pitch envelope — AA, AD, AS, AR are per envelope tick,
+    // not per centisecond. (Verified against jsbeeb headless trace.)
     csUntilNextStep -= 1;
     if (csUntilNextStep <= 0) {
       stepPitch();
+      if (useEnvelope) {
+        switch (phase) {
+          case "attack": {
+            amplitude += env.aa;
+            const reached = env.aa > 0 ? amplitude >= env.ala
+                          : env.aa < 0 ? amplitude <= env.ala
+                          : amplitude === env.ala;
+            if (reached) {
+              amplitude = env.ala;
+              phase = "decay";
+            }
+            break;
+          }
+          case "decay": {
+            amplitude += env.ad;
+            const reached = env.ad > 0 ? amplitude >= env.ald
+                          : env.ad < 0 ? amplitude <= env.ald
+                          : amplitude === env.ald;
+            if (reached) {
+              amplitude = env.ald;
+              phase = "sustain";
+            }
+            break;
+          }
+          case "sustain": {
+            amplitude += env.as;
+            break;
+          }
+          case "release": {
+            amplitude += env.ar;
+            break;
+          }
+        }
+      }
       csUntilNextStep = Math.max(1, tStep);
     }
 
-    // Amplitude tick.
-    if (useEnvelope) {
-      switch (phase) {
-        case "attack": {
-          amplitude += env.aa;
-          // With a positive AA we transition once we reach (or pass) ALA;
-          // with a negative AA, once we drop to ALA. With AA = 0 the
-          // amplitude doesn't move, so we only transition if ALA happens
-          // to equal the current amplitude — otherwise we hold here until
-          // the SOUND duration runs out and the release-on-duration-end
-          // check below kicks in.
-          const reached = env.aa > 0 ? amplitude >= env.ala
-                        : env.aa < 0 ? amplitude <= env.ala
-                        : amplitude === env.ala;
-          if (reached) {
-            amplitude = env.ala;
-            phase = "decay";
-          }
-          break;
-        }
-        case "decay": {
-          amplitude += env.ad;
-          const reached = env.ad > 0 ? amplitude >= env.ald
-                        : env.ad < 0 ? amplitude <= env.ald
-                        : amplitude === env.ald;
-          if (reached) {
-            amplitude = env.ald;
-            phase = "sustain";
-          }
-          break;
-        }
-        case "sustain": {
-          amplitude += env.as;
-          break;
-        }
-        case "release": {
-          if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
-          amplitude += env.ar;
-          const releaseElapsed = csElapsed - releaseStartedAt;
-          if (amplitude <= 0 || releaseElapsed >= MAX_RELEASE_CS) {
-            amplitude = 0;
-            samples.push({ pitchOffset, amplitude: 0, phase: "release" });
-            return samples;
-          }
-          break;
-        }
-      }
-      // SOUND duration end forces release from any non-release phase. The
-      // BBC always starts the release at the configured duration, even if
-      // attack or decay haven't completed yet.
-      if (phase !== "release" && csElapsed + 1 >= noteCentiseconds) {
-        phase = "release";
-      }
-    } else {
+    if (!useEnvelope) {
       // Static amplitude: -15..-1 maps linearly to BBC level 0..126.
       const staticLevel = Math.round((-soundAmplitude / 15) * 126);
       amplitude = clamp(staticLevel, 0, 126);
       if (csElapsed + 1 >= noteCentiseconds) {
+        samples.push({ pitchOffset, amplitude: 0, phase: "release" });
+        return samples;
+      }
+    } else {
+      // Termination: keep emitting samples through the SOUND duration so
+      // pitch updates continue to be visible/audible (matches the trace,
+      // where the OS keeps writing period bytes even after the chip is
+      // attenuated to silence). Stop once we've spent ~10 cs at amp 0
+      // post-release, or hit the safety bound.
+      if (phase === "release" && amplitude <= 0) zeroAmpCount += 1;
+      else zeroAmpCount = 0;
+      const reachedSafetyBound = releaseStartedAt >= 0 && csElapsed - releaseStartedAt >= MAX_RELEASE_CS;
+      if (zeroAmpCount >= 10 || reachedSafetyBound) {
         samples.push({ pitchOffset, amplitude: 0, phase: "release" });
         return samples;
       }

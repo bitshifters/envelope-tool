@@ -13,6 +13,20 @@ function getCtx(): AudioContext {
 }
 
 /**
+ * Map a BBC envelope amplitude (0..126) to an audible gain that follows the
+ * SN76489's 4-bit attenuation register. The OS converts amp via a lookup
+ * table that's effectively `att = 15 - floor(amp / 8)` — verified against
+ * a real-BBC trace where AD=-10 produced attenuations 0,2,3,4,5,7,8,9,10,
+ * 12,13,14,15. amp 0..7 maps to attenuation 15 (silent on chip).
+ */
+function bbcAmpToGain(amp: number): number {
+  if (amp < 8) return 0;
+  const att = 15 - Math.floor(amp / 8);
+  // SN76489 attenuation step is 2 dB. Loudest = 0, silent = 15.
+  return Math.pow(10, (-att * 2) / 20) * 0.4; // 0.4 = output headroom
+}
+
+/**
  * Play a sample stream as if produced by SOUND with the given base pitch.
  * The visualiser and the audio engine consume the same `samples` array, so
  * what you see is what you hear.
@@ -35,8 +49,7 @@ export function play(samples: Sample[], basePitch: number): void {
   for (let i = 0; i < samples.length; i++) {
     const t = t0 + i * CS;
     const s = samples[i]!;
-    // BBC amplitude 0..126 -> linear gain 0..0.4 (leave headroom).
-    gain.gain.setValueAtTime((s.amplitude / 126) * 0.4, t);
+    gain.gain.setValueAtTime(bbcAmpToGain(s.amplitude), t);
     osc.frequency.setValueAtTime(pitchToHz(basePitch + s.pitchOffset), t);
   }
 
