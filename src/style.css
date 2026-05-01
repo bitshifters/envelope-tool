@@ -38,6 +38,17 @@ h3 { font-size: 0.8rem; margin: 14px 0 8px; color: #58a6ff; text-transform: uppe
 h3:first-of-type { margin-top: 0; }
 .subtitle { margin: 0 0 24px; color: #8b949e; }
 
+footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #21262d;
+  color: #6e7681;
+  font-size: 0.8rem;
+  text-align: center;
+}
+footer a { color: #8b949e; }
+footer a:hover { color: #58a6ff; }
+
 code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 
 .panel {
