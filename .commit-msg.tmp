@@ -1,7 +1,0 @@
-Encode envelope and sound parameters in the URL
-
-State changes update the URL via history.replaceState with
-?env=N,T,...,ALD&sound=C,A,P,D, mirroring the BASIC syntax. On page
-load the params are parsed back into state, so copying the URL bar
-gives a shareable link that reproduces the exact envelope and SOUND
-parameters. Malformed or missing params fall back to defaults.
