@@ -82,8 +82,7 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 }
 .field input:focus { outline: 1px solid #58a6ff; }
 
-button {
-  background: #238636;
+#play, #stop {
   color: white;
   border: none;
   border-radius: 4px;
@@ -92,9 +91,10 @@ button {
   cursor: pointer;
   font: inherit;
 }
-button:hover { background: #2ea043; }
-button:last-of-type { background: #6e7681; }
-button:last-of-type:hover { background: #8b949e; }
+#play { background: #238636; }
+#play:hover { background: #2ea043; }
+#stop { background: #6e7681; }
+#stop:hover { background: #8b949e; }
 
 .basic-row {
   display: flex;
@@ -182,3 +182,5 @@ canvas {
   cursor: pointer;
 }
 .preset-btn:hover { background: #30363d; border-color: #58a6ff; }
+.preset-btn:focus { outline: none; }
+.preset-btn:focus-visible { outline: 2px solid #58a6ff; outline-offset: 1px; }
