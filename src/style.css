@@ -76,7 +76,12 @@ button:last-of-type:hover { background: #8b949e; }
   overflow-x: auto;
   font-size: 0.85rem;
   flex: 1;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  color: #c9d1d9;
+  min-width: 0;
 }
+input.basic-line:focus { outline: 1px solid #58a6ff; }
+input.basic-line.invalid { border-color: #f85149; }
 
 .copy-btn {
   background: #21262d;

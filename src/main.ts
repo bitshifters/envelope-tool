@@ -1,5 +1,13 @@
 import "./style.css";
-import { DEFAULT_ENVELOPE, expand, formatBasic, formatSound, type Envelope } from "./envelope";
+import {
+  DEFAULT_ENVELOPE,
+  expand,
+  formatBasic,
+  formatSound,
+  parseEnvelope,
+  parseSound,
+  type Envelope,
+} from "./envelope";
 import { render } from "./visualizer";
 import { play, stop } from "./audio";
 
@@ -28,10 +36,10 @@ const ENV_FIELDS: FieldSpec[] = [
 ];
 
 interface SoundParams {
-  channel: number;   // 0..3
-  amplitude: number; // -15..-1 (static) or 1..4 (envelope)
-  pitch: number;     // 0..255
-  duration: number;  // 1..255 in 1/20s, -1 means hold (treated as 100 here)
+  channel: number;
+  amplitude: number;
+  pitch: number;
+  duration: number;
 }
 
 const DEFAULT_SOUND: SoundParams = { channel: 1, amplitude: 1, pitch: 100, duration: 20 };
@@ -47,19 +55,30 @@ const env: Envelope = { ...DEFAULT_ENVELOPE };
 const sound: SoundParams = { ...DEFAULT_SOUND };
 
 const canvas = document.getElementById("viz") as HTMLCanvasElement;
-const envelopeLine = document.getElementById("envelope-line") as HTMLElement;
-const soundLine = document.getElementById("sound-line") as HTMLElement;
+const envelopeLine = document.getElementById("envelope-line") as HTMLInputElement;
+const soundLine = document.getElementById("sound-line") as HTMLInputElement;
 const envGrid = document.getElementById("envelope-grid") as HTMLElement;
 const soundGrid = document.getElementById("sound-grid") as HTMLElement;
 
-function refresh(): void {
+const envInputs = new Map<keyof Envelope, HTMLInputElement>();
+const soundInputs = new Map<keyof SoundParams, HTMLInputElement>();
+
+/**
+ * Refresh derived UI: visualisation and the BASIC text fields.
+ *
+ * `skipLine` lets us avoid stomping the BASIC field that the user is
+ * currently typing in — we still want to update the parameter inputs and the
+ * canvas, but writing back a re-formatted version of the same statement
+ * mid-edit moves the caret and feels broken.
+ */
+function refresh(skipLine?: "envelope" | "sound"): void {
   const samples = expand(env, sound.amplitude, sound.duration);
   render(canvas, samples);
-  envelopeLine.textContent = formatBasic(env);
-  soundLine.textContent = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
+  if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
+  if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
 }
 
-function makeNumberField<T>(
+function makeNumberField(
   parent: HTMLElement,
   label: string,
   hint: string | undefined,
@@ -67,7 +86,7 @@ function makeNumberField<T>(
   max: number,
   initial: number,
   onChange: (n: number) => void,
-): void {
+): HTMLInputElement {
   const wrap = document.createElement("label");
   wrap.className = "field";
   const lbl = document.createElement("span");
@@ -86,22 +105,54 @@ function makeNumberField<T>(
   wrap.appendChild(lbl);
   wrap.appendChild(input);
   parent.appendChild(wrap);
-  void (null as T | null);
+  return input;
 }
 
 for (const f of ENV_FIELDS) {
-  makeNumberField(envGrid, f.label, f.hint, f.min, f.max, env[f.key] as number, (n) => {
+  const input = makeNumberField(envGrid, f.label, f.hint, f.min, f.max, env[f.key] as number, (n) => {
     (env as unknown as Record<string, number>)[f.key] = n;
     refresh();
   });
+  envInputs.set(f.key, input);
 }
 
 for (const f of SOUND_FIELDS) {
-  makeNumberField(soundGrid, f.label, f.hint, f.min, f.max, sound[f.key], (n) => {
+  const input = makeNumberField(soundGrid, f.label, f.hint, f.min, f.max, sound[f.key], (n) => {
     sound[f.key] = n;
     refresh();
   });
+  soundInputs.set(f.key, input);
 }
+
+envelopeLine.addEventListener("input", () => {
+  const parsed = parseEnvelope(envelopeLine.value);
+  if (!parsed) {
+    envelopeLine.classList.add("invalid");
+    return;
+  }
+  envelopeLine.classList.remove("invalid");
+  Object.assign(env, parsed);
+  for (const f of ENV_FIELDS) {
+    const input = envInputs.get(f.key);
+    if (input) input.value = String(env[f.key]);
+  }
+  refresh("envelope");
+});
+
+soundLine.addEventListener("input", () => {
+  const parsed = parseSound(soundLine.value);
+  if (!parsed) {
+    soundLine.classList.add("invalid");
+    return;
+  }
+  soundLine.classList.remove("invalid");
+  Object.assign(sound, parsed);
+  for (const f of SOUND_FIELDS) {
+    const input = soundInputs.get(f.key);
+    if (input) input.value = String(sound[f.key]);
+  }
+  refresh("sound");
+});
 
 document.getElementById("play")!.addEventListener("click", () => {
   const samples = expand(env, sound.amplitude, sound.duration);
@@ -114,20 +165,15 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
   btn.addEventListener("click", async () => {
     const targetId = btn.dataset["copy"];
     if (!targetId) return;
-    const target = document.getElementById(targetId);
+    const target = document.getElementById(targetId) as HTMLInputElement | null;
     if (!target) return;
-    const text = target.textContent ?? "";
+    const text = target.value ?? target.textContent ?? "";
     try {
       await navigator.clipboard.writeText(text);
       btn.classList.add("copied");
       setTimeout(() => btn.classList.remove("copied"), 1200);
     } catch {
-      // Clipboard API can fail in non-secure contexts; fall back to selection.
-      const range = document.createRange();
-      range.selectNodeContents(target);
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
+      target.select();
     }
   });
 }

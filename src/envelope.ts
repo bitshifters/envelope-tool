@@ -189,6 +189,45 @@ export function formatSound(channel: number, amplitude: number, pitch: number, d
   return `SOUND ${channel},${amplitude},${pitch},${duration}`;
 }
 
+/**
+ * Pull comma-separated integers out of a BBC BASIC statement, ignoring an
+ * optional leading keyword and any surrounding whitespace. Returns null if
+ * the wrong number of integers is present or any token isn't a valid integer.
+ */
+function parseStatement(line: string, keyword: string, expected: number): number[] | null {
+  const trimmed = line.trim().replace(/^[A-Za-z]+\s*/, ""); // drop optional keyword
+  void keyword; // keyword is matched loosely; users may paste with or without it
+  if (trimmed.length === 0) return null;
+  const tokens = trimmed.split(",").map((t) => t.trim());
+  if (tokens.length !== expected) return null;
+  const out: number[] = [];
+  for (const t of tokens) {
+    if (!/^-?\d+$/.test(t)) return null;
+    out.push(Number.parseInt(t, 10));
+  }
+  return out;
+}
+
+/** Parse a BBC BASIC `ENVELOPE` statement. Returns null on malformed input. */
+export function parseEnvelope(line: string): Envelope | null {
+  const v = parseStatement(line, "ENVELOPE", 14);
+  if (!v) return null;
+  return {
+    n: v[0]!, t: v[1]!,
+    pi1: v[2]!, pi2: v[3]!, pi3: v[4]!,
+    pn1: v[5]!, pn2: v[6]!, pn3: v[7]!,
+    aa: v[8]!, ad: v[9]!, as: v[10]!, ar: v[11]!,
+    ala: v[12]!, ald: v[13]!,
+  };
+}
+
+/** Parse a BBC BASIC `SOUND` statement. Returns null on malformed input. */
+export function parseSound(line: string): { channel: number; amplitude: number; pitch: number; duration: number } | null {
+  const v = parseStatement(line, "SOUND", 4);
+  if (!v) return null;
+  return { channel: v[0]!, amplitude: v[1]!, pitch: v[2]!, duration: v[3]! };
+}
+
 // MOS 1.20 pitch lookup tables ($EDFB and $EE07).
 // pitchLookupHigh packs two things: the low 2 bits give bits [9:8] of the
 // divider, and the top nybble gives the per-quarter-tone delta to subtract
