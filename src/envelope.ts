@@ -126,6 +126,14 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   // Hard cap to protect against pathological envelopes (e.g. AA=0, ALA>0 -> never reach target).
   const MAX_CS = 60_000; // 10 minutes of centiseconds
 
+  // Release runs until amplitude hits 0, but with AR=0 (or positive AR) the
+  // amplitude never decreases — on real BBC the note keeps sounding for the
+  // life of the channel. For our visualisation/audition we cap the release
+  // tail so the sample stream actually terminates. Two seconds of trailing
+  // release is plenty for audible inspection.
+  const MAX_RELEASE_CS = 200;
+  let releaseStartedAt = -1;
+
   while (csElapsed < MAX_CS) {
     samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
 
@@ -141,7 +149,16 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
       switch (phase) {
         case "attack": {
           amplitude += env.aa;
-          if (env.aa >= 0 ? amplitude >= env.ala : amplitude <= env.ala) {
+          // With a positive AA we transition once we reach (or pass) ALA;
+          // with a negative AA, once we drop to ALA. With AA = 0 the
+          // amplitude doesn't move, so we only transition if ALA happens
+          // to equal the current amplitude — otherwise we hold here until
+          // the SOUND duration runs out and the release-on-duration-end
+          // check below kicks in.
+          const reached = env.aa > 0 ? amplitude >= env.ala
+                        : env.aa < 0 ? amplitude <= env.ala
+                        : amplitude === env.ala;
+          if (reached) {
             amplitude = env.ala;
             phase = "decay";
           }
@@ -149,7 +166,10 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
         }
         case "decay": {
           amplitude += env.ad;
-          if (env.ad >= 0 ? amplitude >= env.ald : amplitude <= env.ald) {
+          const reached = env.ad > 0 ? amplitude >= env.ald
+                        : env.ad < 0 ? amplitude <= env.ald
+                        : amplitude === env.ald;
+          if (reached) {
             amplitude = env.ald;
             phase = "sustain";
           }
@@ -157,18 +177,25 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
         }
         case "sustain": {
           amplitude += env.as;
-          if (csElapsed + 1 >= noteCentiseconds) phase = "release";
           break;
         }
         case "release": {
+          if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
           amplitude += env.ar;
-          if (amplitude <= 0) {
+          const releaseElapsed = csElapsed - releaseStartedAt;
+          if (amplitude <= 0 || releaseElapsed >= MAX_RELEASE_CS) {
             amplitude = 0;
             samples.push({ pitchOffset, amplitude: 0, phase: "release" });
             return samples;
           }
           break;
         }
+      }
+      // SOUND duration end forces release from any non-release phase. The
+      // BBC always starts the release at the configured duration, even if
+      // attack or decay haven't completed yet.
+      if (phase !== "release" && csElapsed + 1 >= noteCentiseconds) {
+        phase = "release";
       }
     } else {
       // Static amplitude: -15..-1 maps linearly to BBC level 0..126.

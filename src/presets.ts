@@ -102,4 +102,107 @@ export const PRESETS: Preset[] = [
            aa: 20, ad: -1, as: 0, ar: -5, ala: 110, ald: 90 },
     sound: { channel: 1, amplitude: 1, pitch: 90, duration: 100 },
   },
+  // The presets below are sourced from disassemblies of classic BBC Micro
+  // games. Each ENVELOPE row is the 14-byte sound chip configuration the
+  // game uploads via OSWORD &08 or BASIC ENVELOPE. SOUND parameters are
+  // chosen for sensible audition (the game's actual SOUND parameters are
+  // often set programmatically and vary per invocation).
+  {
+    name: "Sentinel: tune",
+    description: "The Sentinel (1986) — short looping tune note with a tiny pitch wobble",
+    env: { n: 4, t: 2, pi1: 1, pi2: -1, pi3: 0, pn1: 1, pn2: 1, pn3: 8,
+           aa: 120, ad: -1, as: 0, ar: -1, ala: 120, ald: 8 },
+    sound: { channel: 1, amplitude: 4, pitch: 80, duration: 20 },
+  },
+  {
+    name: "Sentinel: targeted",
+    description: "The Sentinel (1986) — alarm when the player is being targeted; slow rising attack with looping ±6 quarter-tone oscillation",
+    env: { n: 3, t: 1, pi1: 6, pi2: -6, pi3: 0, pn1: 1, pn2: 1, pn3: 0,
+           aa: 1, ad: -1, as: 0, ar: 0, ala: 120, ald: 8 },
+    sound: { channel: 1, amplitude: 3, pitch: 100, duration: 20 },
+  },
+  {
+    name: "Sentinel: energy",
+    description: "The Sentinel (1986) — energy-loss / bad-action sting; single-sweep pitch bend with a fast amplitude decay",
+    env: { n: 4, t: 130, pi1: 1, pi2: -1, pi3: 0, pn1: 2, pn2: 1, pn3: 7,
+           aa: 120, ad: -6, as: -2, ar: -2, ala: 120, ald: 0 },
+    sound: { channel: 1, amplitude: 4, pitch: 144, duration: 20 },
+  },
+  {
+    name: "Zalaga: shoot",
+    description: "Zalaga (1983, Aardvark) — short percussive blip used for the player's lasers and small enemy hits",
+    env: { n: 2, t: 2, pi1: 0, pi2: 0, pi3: 0, pn1: 1, pn2: 1, pn3: 1,
+           aa: 110, ad: -3, as: -2, ar: -100, ala: 110, ald: 90 },
+    sound: { channel: 1, amplitude: 2, pitch: 100, duration: 8 },
+  },
+  {
+    name: "Zalaga: active",
+    description: "Zalaga (1983, Aardvark) — enemy-becoming-active sting; rising-then-falling pitch sweep over a long single shot",
+    env: { n: 4, t: 130, pi1: 0, pi2: 2, pi3: -1, pn1: 3, pn2: 10, pn3: 70,
+           aa: 6, ad: -1, as: -2, ar: -126, ala: 110, ald: 120 },
+    sound: { channel: 1, amplitude: 4, pitch: 120, duration: 40 },
+  },
+  {
+    name: "Elite: laser",
+    description: "Elite (1984, Acornsoft / Braben & Bell) — pulse laser firing; envelope 1 from the cassette loader's E% table",
+    env: { n: 1, t: 1, pi1: 0, pi2: 111, pi3: -8, pn1: 4, pn2: 1, pn3: 8,
+           aa: 8, ad: -2, as: 0, ar: -1, ala: 112, ald: 44 },
+    sound: { channel: 2, amplitude: 1, pitch: 0, duration: 16 },
+  },
+  {
+    name: "Elite: hit",
+    description: "Elite — hit by enemy laser fire; envelope 2 (also used for hyperspace)",
+    env: { n: 2, t: 1, pi1: 14, pi2: -18, pi3: -1, pn1: 44, pn2: 32, pn3: 50,
+           aa: 6, ad: 1, as: 0, ar: -2, ala: 120, ald: 126 },
+    sound: { channel: 2, amplitude: 2, pitch: 44, duration: 8 },
+  },
+  {
+    name: "Elite: dying",
+    description: "Elite — first part of the death sound; also used for hits/kills (envelope 3)",
+    env: { n: 3, t: 1, pi1: 1, pi2: -1, pi3: -3, pn1: 17, pn2: 32, pn3: 128,
+           aa: 1, ad: 0, as: 0, ar: -1, ala: 1, ald: 1 },
+    sound: { channel: 1, amplitude: 3, pitch: 240, duration: 24 },
+  },
+  {
+    name: "Elite: ECM",
+    description: "Elite — E.C.M. (Electronic Counter Measures) firing; envelope 4 with sweeping pitch over a long duration",
+    env: { n: 4, t: 1, pi1: 4, pi2: -8, pi3: 44, pn1: 4, pn2: 6, pn3: 8,
+           aa: 22, ad: 0, as: 0, ar: -127, ala: 126, ald: 0 },
+    sound: { channel: 3, amplitude: 4, pitch: 194, duration: 80 },
+  },
+  {
+    name: "Chuckie: blip",
+    description: "Chuckie Egg (1983, A&F / Alderton) — short percussive bleep used for collecting eggs and similar",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 126, ad: -50, as: 0, ar: 0, ala: 100, ald: 0 },
+    sound: { channel: 1, amplitude: 1, pitch: 100, duration: 5 },
+  },
+  {
+    name: "Thrust: gun",
+    description: "Thrust (1986, Superior / Smith) — player's gun firing (envelope 1)",
+    env: { n: 1, t: 2, pi1: -5, pi2: -3, pi3: -5, pn1: 2, pn2: 3, pn3: 50,
+           aa: 126, ad: -7, as: -7, ar: -12, ala: 126, ald: 0 },
+    sound: { channel: 2, amplitude: 1, pitch: 80, duration: 2 },
+  },
+  {
+    name: "Thrust: explosion",
+    description: "Thrust — explosion tone component on channel 1 (envelope 2; the original game pairs this with a parallel noise burst)",
+    env: { n: 2, t: 2, pi1: -1, pi2: 0, pi3: 1, pn1: 9, pn2: 9, pn3: 9,
+           aa: 0, ad: 0, as: 0, ar: 1, ala: 1, ald: 1 },
+    sound: { channel: 1, amplitude: 2, pitch: 150, duration: 40 },
+  },
+  {
+    name: "Thrust: hostile",
+    description: "Thrust — hostile gun firing (envelope 4)",
+    env: { n: 4, t: 1, pi1: -1, pi2: -1, pi3: -1, pn1: 18, pn2: 18, pn3: 18,
+           aa: 50, ad: -12, as: -12, ar: -12, ala: 110, ald: 70 },
+    sound: { channel: 3, amplitude: 4, pitch: 30, duration: 20 },
+  },
+  {
+    name: "Thrust: orbit",
+    description: "Thrust — entering orbit blip (envelope 3)",
+    env: { n: 3, t: 4, pi1: 0, pi2: 0, pi3: 0, pn1: 1, pn2: 1, pn3: 1,
+           aa: 126, ad: -4, as: -2, ar: -4, ala: 126, ald: 110 },
+    sound: { channel: 2, amplitude: 3, pitch: 185, duration: 5 },
+  },
 ];
