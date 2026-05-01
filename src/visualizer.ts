@@ -111,12 +111,14 @@ export function render(
   ctx.textBaseline = "alphabetic";
   ctx.font = "12px system-ui, sans-serif";
 
-  // Pitch plot: absolute BBC pitch (basePitch + envelope offset). Auto-scale
-  // around the base pitch with at least one semitone of headroom each side
-  // and snap to semitone boundaries so gridlines land cleanly.
+  // Pitch plot: absolute BBC pitch (basePitch + envelope offset, wrapped
+  // mod 256 to match the BBC's single-byte pitch register). Auto-scale
+  // around the actual pitches used with at least one semitone of headroom
+  // each side, snapping to semitone boundaries.
+  const wrappedPitch = (offset: number): number => (basePitch + offset) & 0xff;
   let minP = basePitch, maxP = basePitch;
   for (const s of samples) {
-    const p = basePitch + s.pitchOffset;
+    const p = wrappedPitch(s.pitchOffset);
     if (p < minP) minP = p;
     if (p > maxP) maxP = p;
   }
@@ -157,7 +159,7 @@ export function render(
   ctx.lineWidth = 2;
   for (let i = 0; i < samples.length; i++) {
     const x = xFor(i);
-    const y = pitchY(basePitch + samples[i]!.pitchOffset);
+    const y = pitchY(wrappedPitch(samples[i]!.pitchOffset));
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }

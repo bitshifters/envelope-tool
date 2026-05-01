@@ -286,9 +286,13 @@ const PITCH_HIGH = [0xE7, 0xD7, 0xCB, 0xC3, 0xB7, 0xAA, 0xA2, 0x9A, 0x92, 0x8A, 
  * right-shifts of the 10-bit divider, which causes the BBC's tuning to drift
  * slightly sharp of equal temperament in higher octaves — that quirk is
  * what we want to reproduce so playback matches the real machine.
+ *
+ * The input is wrapped mod 256 because the BBC's pitch register is a single
+ * byte and the OS adds PI to it with the 6502's natural byte wrap. Negative
+ * envelope offsets must wrap up to high pitches, not clamp at 0.
  */
 export function pitchToHz(pitch: number): number {
-  const p = clamp(pitch, 0, 255) | 0;
+  const p = (pitch | 0) & 0xff;
   const fractional = p & 3;
   let count = p >> 2;
   let octave = 0;
