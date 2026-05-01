@@ -15,6 +15,8 @@ main {
 
 h1 { font-size: 1.4rem; margin: 0 0 4px; }
 h2 { font-size: 1rem; margin: 0 0 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+h3 { font-size: 0.8rem; margin: 14px 0 8px; color: #58a6ff; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+h3:first-of-type { margin-top: 0; }
 .subtitle { margin: 0 0 24px; color: #8b949e; }
 
 code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
@@ -29,13 +31,28 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 8px 12px;
   margin-bottom: 12px;
 }
 
-.field { display: flex; flex-direction: column; gap: 2px; }
-.field-label { font-size: 0.75rem; color: #8b949e; cursor: help; }
+.field { display: flex; flex-direction: column; gap: 2px; cursor: help; }
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.field-name { font-size: 0.78rem; color: #c9d1d9; }
+.field-code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.7rem;
+  color: #6e7681;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 3px;
+  padding: 0 4px;
+}
 .field input {
   background: #0d1117;
   border: 1px solid #30363d;

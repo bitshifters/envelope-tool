@@ -13,27 +13,33 @@ import { play, playheadFraction, stop } from "./audio";
 
 interface FieldSpec {
   key: keyof Envelope;
-  label: string;
+  code: string;   // BBC parameter mnemonic
+  label: string;  // human-readable description
   min: number;
   max: number;
   hint?: string;
 }
 
-const ENV_FIELDS: FieldSpec[] = [
-  { key: "t",   label: "T",   min: 0,    max: 255, hint: "step length (1/100s); +128 to repeat" },
-  { key: "pi1", label: "PI1", min: -128, max: 127, hint: "pitch Δ/step, section 1" },
-  { key: "pi2", label: "PI2", min: -128, max: 127, hint: "pitch Δ/step, section 2" },
-  { key: "pi3", label: "PI3", min: -128, max: 127, hint: "pitch Δ/step, section 3" },
-  { key: "pn1", label: "PN1", min: 0,    max: 255, hint: "steps in section 1" },
-  { key: "pn2", label: "PN2", min: 0,    max: 255, hint: "steps in section 2" },
-  { key: "pn3", label: "PN3", min: 0,    max: 255, hint: "steps in section 3" },
-  { key: "aa",  label: "AA",  min: -127, max: 127, hint: "attack rate (level Δ/cs)" },
-  { key: "ad",  label: "AD",  min: -127, max: 127, hint: "decay rate" },
-  { key: "as",  label: "AS",  min: -127, max: 127, hint: "sustain rate" },
-  { key: "ar",  label: "AR",  min: -127, max: 127, hint: "release rate (usually negative)" },
-  { key: "ala", label: "ALA", min: 0,    max: 126, hint: "attack target level" },
-  { key: "ald", label: "ALD", min: 0,    max: 126, hint: "level at end of decay" },
+const PITCH_FIELDS: FieldSpec[] = [
+  { key: "t",   code: "T",   label: "Step length",   min: 0,    max: 255, hint: "duration of each pitch step in 1/100 s. Add 128 to auto-repeat the pitch envelope." },
+  { key: "pi1", code: "PI1", label: "Section 1 Δ",   min: -128, max: 127, hint: "pitch change per step in section 1" },
+  { key: "pn1", code: "PN1", label: "Section 1 steps", min: 0,  max: 255, hint: "number of steps in section 1" },
+  { key: "pi2", code: "PI2", label: "Section 2 Δ",   min: -128, max: 127, hint: "pitch change per step in section 2" },
+  { key: "pn2", code: "PN2", label: "Section 2 steps", min: 0,  max: 255, hint: "number of steps in section 2" },
+  { key: "pi3", code: "PI3", label: "Section 3 Δ",   min: -128, max: 127, hint: "pitch change per step in section 3" },
+  { key: "pn3", code: "PN3", label: "Section 3 steps", min: 0,  max: 255, hint: "number of steps in section 3" },
 ];
+
+const AMP_FIELDS: FieldSpec[] = [
+  { key: "aa",  code: "AA",  label: "Attack rate",         min: -127, max: 127, hint: "amplitude change per centisecond during attack" },
+  { key: "ala", code: "ALA", label: "Attack peak level",   min: 0,    max: 126, hint: "level reached at end of attack" },
+  { key: "ad",  code: "AD",  label: "Decay rate",          min: -127, max: 127, hint: "amplitude change per centisecond during decay" },
+  { key: "ald", code: "ALD", label: "Sustain start level", min: 0,    max: 126, hint: "level at end of decay (start of sustain)" },
+  { key: "as",  code: "AS",  label: "Sustain rate",        min: -127, max: 127, hint: "amplitude change per centisecond during sustain (until SOUND duration ends)" },
+  { key: "ar",  code: "AR",  label: "Release rate",        min: -127, max: 127, hint: "amplitude change per centisecond during release; usually negative" },
+];
+
+const ENV_FIELDS: FieldSpec[] = [...PITCH_FIELDS, ...AMP_FIELDS];
 
 interface SoundParams {
   channel: number;
@@ -44,11 +50,11 @@ interface SoundParams {
 
 const DEFAULT_SOUND: SoundParams = { channel: 1, amplitude: 1, pitch: 100, duration: 20 };
 
-const SOUND_FIELDS: { key: keyof SoundParams; label: string; min: number; max: number; hint: string }[] = [
-  { key: "channel",   label: "Channel",   min: 0,   max: 3,   hint: "0=noise, 1..3=tone" },
-  { key: "amplitude", label: "Amplitude", min: -15, max: 4,   hint: "-15..-1 static, 1..4 envelope #" },
-  { key: "pitch",     label: "Pitch",     min: 0,   max: 255, hint: "4 units = 1 semitone" },
-  { key: "duration",  label: "Duration",  min: 1,   max: 255, hint: "in 1/20 s" },
+const SOUND_FIELDS: { key: keyof SoundParams; code: string; label: string; min: number; max: number; hint: string }[] = [
+  { key: "channel",   code: "C", label: "Channel",   min: 0,   max: 3,   hint: "0 = noise, 1..3 = tone" },
+  { key: "amplitude", code: "A", label: "Amplitude", min: -15, max: 4,   hint: "-15..-1 static volume, 1..4 selects envelope number" },
+  { key: "pitch",     code: "P", label: "Pitch",     min: 0,   max: 255, hint: "4 units per semitone, 48 per octave" },
+  { key: "duration",  code: "D", label: "Duration",  min: 1,   max: 255, hint: "in 1/20 s" },
 ];
 
 const env: Envelope = { ...DEFAULT_ENVELOPE };
@@ -57,7 +63,8 @@ const sound: SoundParams = { ...DEFAULT_SOUND };
 const canvas = document.getElementById("viz") as HTMLCanvasElement;
 const envelopeLine = document.getElementById("envelope-line") as HTMLInputElement;
 const soundLine = document.getElementById("sound-line") as HTMLInputElement;
-const envGrid = document.getElementById("envelope-grid") as HTMLElement;
+const pitchGrid = document.getElementById("pitch-grid") as HTMLElement;
+const ampGrid = document.getElementById("amp-grid") as HTMLElement;
 const soundGrid = document.getElementById("sound-grid") as HTMLElement;
 
 const envInputs = new Map<keyof Envelope, HTMLInputElement>();
@@ -76,7 +83,7 @@ let playheadRaf: number | null = null;
 
 function refresh(skipLine?: "envelope" | "sound"): void {
   currentSamples = expand(env, sound.amplitude, sound.duration);
-  render(canvas, currentSamples, playheadFraction());
+  render(canvas, currentSamples, sound.pitch, playheadFraction());
   if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
   if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
 }
@@ -85,7 +92,7 @@ function animatePlayhead(): void {
   if (playheadRaf !== null) return;
   const tick = () => {
     const f = playheadFraction();
-    render(canvas, currentSamples, f);
+    render(canvas, currentSamples, sound.pitch, f);
     if (f === null) {
       playheadRaf = null;
       return;
@@ -98,6 +105,7 @@ function animatePlayhead(): void {
 function makeNumberField(
   parent: HTMLElement,
   label: string,
+  code: string,
   hint: string | undefined,
   min: number,
   max: number,
@@ -106,10 +114,16 @@ function makeNumberField(
 ): HTMLInputElement {
   const wrap = document.createElement("label");
   wrap.className = "field";
+  if (hint) wrap.title = hint;
   const lbl = document.createElement("span");
   lbl.className = "field-label";
-  lbl.textContent = label;
-  if (hint) lbl.title = hint;
+  const name = document.createElement("span");
+  name.className = "field-name";
+  name.textContent = label;
+  const codeEl = document.createElement("code");
+  codeEl.className = "field-code";
+  codeEl.textContent = code;
+  lbl.append(name, codeEl);
   const input = document.createElement("input");
   input.type = "number";
   input.min = String(min);
@@ -125,16 +139,20 @@ function makeNumberField(
   return input;
 }
 
-for (const f of ENV_FIELDS) {
-  const input = makeNumberField(envGrid, f.label, f.hint, f.min, f.max, env[f.key] as number, (n) => {
-    (env as unknown as Record<string, number>)[f.key] = n;
-    refresh();
-  });
-  envInputs.set(f.key, input);
-}
+const populateEnvFields = (parent: HTMLElement, fields: FieldSpec[]) => {
+  for (const f of fields) {
+    const input = makeNumberField(parent, f.label, f.code, f.hint, f.min, f.max, env[f.key] as number, (n) => {
+      (env as unknown as Record<string, number>)[f.key] = n;
+      refresh();
+    });
+    envInputs.set(f.key, input);
+  }
+};
+populateEnvFields(pitchGrid, PITCH_FIELDS);
+populateEnvFields(ampGrid, AMP_FIELDS);
 
 for (const f of SOUND_FIELDS) {
-  const input = makeNumberField(soundGrid, f.label, f.hint, f.min, f.max, sound[f.key], (n) => {
+  const input = makeNumberField(soundGrid, f.label, f.code, f.hint, f.min, f.max, sound[f.key], (n) => {
     sound[f.key] = n;
     refresh();
   });
@@ -182,7 +200,7 @@ document.getElementById("stop")!.addEventListener("click", () => {
     cancelAnimationFrame(playheadRaf);
     playheadRaf = null;
   }
-  render(canvas, currentSamples, null);
+  render(canvas, currentSamples, sound.pitch, null);
 });
 
 for (const btn of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {

@@ -7,7 +7,12 @@ const PHASE_COLOURS: Record<Sample["phase"], string> = {
   release: "#ff8fa3",
 };
 
-export function render(canvas: HTMLCanvasElement, samples: Sample[], playhead: number | null = null): void {
+export function render(
+  canvas: HTMLCanvasElement,
+  samples: Sample[],
+  basePitch: number,
+  playhead: number | null = null,
+): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const { width, height } = canvas;
@@ -33,7 +38,7 @@ export function render(canvas: HTMLCanvasElement, samples: Sample[], playhead: n
   ctx.fillStyle = "#8b949e";
   ctx.font = "12px system-ui, sans-serif";
   ctx.fillText("Amplitude (0..126)", padding, ampTop - 6);
-  ctx.fillText(`Pitch offset (steps)  —  ${samples.length} centiseconds`, padding, pitchTop - 6);
+  ctx.fillText(`Pitch (BBC units, 4 = 1 semitone)  —  ${samples.length} centiseconds`, padding, pitchTop - 6);
 
   const xFor = (i: number) =>
     padding + (samples.length === 1 ? 0 : (i / (samples.length - 1)) * plotW);
@@ -59,28 +64,53 @@ export function render(canvas: HTMLCanvasElement, samples: Sample[], playhead: n
   }
   ctx.stroke();
 
-  // Pitch plot. Auto-scale to symmetric range around 0 with at least ±4 visible.
-  let minP = 0, maxP = 0;
+  // Pitch plot: absolute BBC pitch (basePitch + envelope offset). Auto-scale
+  // around the base pitch with at least one semitone of headroom each side
+  // and snap to semitone boundaries so gridlines land cleanly.
+  let minP = basePitch, maxP = basePitch;
   for (const s of samples) {
-    if (s.pitchOffset < minP) minP = s.pitchOffset;
-    if (s.pitchOffset > maxP) maxP = s.pitchOffset;
+    const p = basePitch + s.pitchOffset;
+    if (p < minP) minP = p;
+    if (p > maxP) maxP = p;
   }
-  const range = Math.max(4, Math.abs(minP), Math.abs(maxP));
-  const pitchY = (p: number) => pitchTop + halfH / 2 - (p / range) * (halfH / 2);
+  const headroom = Math.max(4, Math.round((maxP - minP) * 0.15));
+  minP = Math.floor((minP - headroom) / 4) * 4;
+  maxP = Math.ceil((maxP + headroom) / 4) * 4;
+  if (maxP === minP) maxP = minP + 4;
 
-  // Zero line.
-  ctx.strokeStyle = "#30363d";
+  const pitchY = (p: number) => pitchTop + halfH - ((p - minP) / (maxP - minP)) * halfH;
+
+  // Semitone gridlines (light) and octave gridlines (stronger, labelled).
+  for (let p = Math.ceil(minP / 4) * 4; p <= maxP; p += 4) {
+    ctx.strokeStyle = p % 48 === 0 ? "#30363d" : "#1c2128";
+    ctx.beginPath();
+    ctx.moveTo(padding, pitchY(p));
+    ctx.lineTo(padding + plotW, pitchY(p));
+    ctx.stroke();
+    if (p % 48 === 0) {
+      ctx.fillStyle = "#6e7681";
+      ctx.fillText(String(p), padding + 4, pitchY(p) - 2);
+    }
+  }
+
+  // Base pitch reference line (dashed).
+  ctx.strokeStyle = "#56cfe1";
+  ctx.setLineDash([3, 4]);
   ctx.beginPath();
-  ctx.moveTo(padding, pitchY(0));
-  ctx.lineTo(padding + plotW, pitchY(0));
+  ctx.moveTo(padding, pitchY(basePitch));
+  ctx.lineTo(padding + plotW, pitchY(basePitch));
   ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#56cfe1";
+  ctx.fillText(`base ${basePitch}`, padding + plotW - 60, pitchY(basePitch) - 2);
 
+  // Pitch trajectory.
   ctx.beginPath();
   ctx.strokeStyle = "#ffd166";
   ctx.lineWidth = 2;
   for (let i = 0; i < samples.length; i++) {
     const x = xFor(i);
-    const y = pitchY(samples[i]!.pitchOffset);
+    const y = pitchY(basePitch + samples[i]!.pitchOffset);
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
