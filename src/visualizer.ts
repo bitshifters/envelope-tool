@@ -43,6 +43,34 @@ export function render(
   const xFor = (i: number) =>
     padding + (samples.length === 1 ? 0 : (i / (samples.length - 1)) * plotW);
 
+  // Identify contiguous runs of each ADSR phase so we can draw boundary
+  // lines and per-phase labels.
+  interface PhaseRun { phase: Sample["phase"]; startI: number; endI: number }
+  const runs: PhaseRun[] = [];
+  let runStart = 0;
+  for (let i = 1; i <= samples.length; i++) {
+    const ended = i === samples.length || samples[i]!.phase !== samples[runStart]!.phase;
+    if (ended) {
+      runs.push({ phase: samples[runStart]!.phase, startI: runStart, endI: i });
+      runStart = i;
+    }
+  }
+
+  // Phase boundary lines — dashed, spanning both plots so the user can read
+  // the same region across amplitude and pitch.
+  ctx.setLineDash([2, 3]);
+  ctx.strokeStyle = "#30363d";
+  for (let r = 1; r < runs.length; r++) {
+    const x = xFor(runs[r]!.startI);
+    ctx.beginPath();
+    ctx.moveTo(x, ampTop);
+    ctx.lineTo(x, ampTop + halfH);
+    ctx.moveTo(x, pitchTop);
+    ctx.lineTo(x, pitchTop + halfH);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
   // Amplitude plot, coloured per phase.
   let prevPhase: Sample["phase"] | null = null;
   for (let i = 0; i < samples.length; i++) {
@@ -63,6 +91,25 @@ export function render(
     }
   }
   ctx.stroke();
+
+  // Phase labels at the top of the amp plot, one per region, in the
+  // matching phase colour. Skip regions too narrow to fit a letter.
+  ctx.font = "bold 11px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (const r of runs) {
+    const x0 = xFor(r.startI);
+    const x1 = xFor(Math.max(r.startI, r.endI - 1));
+    if (x1 - x0 < 10) continue;
+    const mid = (x0 + x1) / 2;
+    ctx.fillStyle = "rgba(13, 17, 23, 0.75)";
+    ctx.fillRect(mid - 7, ampTop + 2, 14, 14);
+    ctx.fillStyle = PHASE_COLOURS[r.phase];
+    ctx.fillText(r.phase[0]!.toUpperCase(), mid, ampTop + 4);
+  }
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "12px system-ui, sans-serif";
 
   // Pitch plot: absolute BBC pitch (basePitch + envelope offset). Auto-scale
   // around the base pitch with at least one semitone of headroom each side
