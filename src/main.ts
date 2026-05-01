@@ -52,10 +52,10 @@ interface SoundParams {
 const DEFAULT_SOUND: SoundParams = { channel: 1, amplitude: 1, pitch: 100, duration: 20 };
 
 const SOUND_FIELDS: { key: keyof SoundParams; code: string; label: string; min: number; max: number; hint: string }[] = [
-  { key: "channel",   code: "C", label: "Channel",   min: 0,   max: 3,   hint: "0 = noise, 1..3 = tone" },
-  { key: "amplitude", code: "A", label: "Amplitude", min: -15, max: 4,   hint: "-15..-1 static volume, 1..4 selects envelope number" },
-  { key: "pitch",     code: "P", label: "Pitch",     min: 0,   max: 255, hint: "4 units per semitone, 48 per octave" },
-  { key: "duration",  code: "D", label: "Duration",  min: 1,   max: 255, hint: "in 1/20 s" },
+  { key: "channel",   code: "C", label: "Channel",   min: 1, max: 3,   hint: "1..3 = tone (channel 0 noise is not supported by this tool)" },
+  { key: "amplitude", code: "A", label: "Amplitude", min: 1, max: 4,   hint: "1..4 selects envelope number (negative static volumes are not supported by this tool)" },
+  { key: "pitch",     code: "P", label: "Pitch",     min: 0, max: 255, hint: "4 units per semitone, 48 per octave" },
+  { key: "duration",  code: "D", label: "Duration",  min: 1, max: 255, hint: "in 1/20 s" },
 ];
 
 const env: Envelope = { ...DEFAULT_ENVELOPE };
@@ -66,6 +66,7 @@ loadFromUrlParams();
 const canvas = document.getElementById("viz") as HTMLCanvasElement;
 const envelopeLine = document.getElementById("envelope-line") as HTMLInputElement;
 const soundLine = document.getElementById("sound-line") as HTMLInputElement;
+const envNInput = document.getElementById("env-n") as HTMLInputElement;
 const pitchGrid = document.getElementById("pitch-grid") as HTMLElement;
 const ampGrid = document.getElementById("amp-grid") as HTMLElement;
 const soundGrid = document.getElementById("sound-grid") as HTMLElement;
@@ -83,6 +84,20 @@ const soundInputs = new Map<keyof SoundParams, HTMLInputElement>();
  */
 let currentSamples: ReturnType<typeof expand> = [];
 let playheadRaf: number | null = null;
+
+/**
+ * Keep env.n and sound.amplitude in lockstep — the BBC SOUND command's
+ * amplitude argument selects which envelope to apply, so for the tool's
+ * purposes they should always match. Updates both DOM inputs as well.
+ */
+function setEnvelopeNumber(n: number): void {
+  const c = Math.max(1, Math.min(4, Math.round(n)));
+  env.n = c;
+  sound.amplitude = c;
+  envNInput.value = String(c);
+  const ampInput = soundInputs.get("amplitude");
+  if (ampInput) ampInput.value = String(c);
+}
 
 function refresh(skipLine?: "envelope" | "sound"): void {
   currentSamples = expand(env, sound.amplitude, sound.duration);
@@ -191,11 +206,26 @@ populateEnvFields(ampGrid, AMP_FIELDS);
 
 for (const f of SOUND_FIELDS) {
   const input = makeNumberField(soundGrid, f.label, f.code, f.hint, f.min, f.max, sound[f.key], (n) => {
-    sound[f.key] = n;
+    if (f.key === "amplitude") {
+      setEnvelopeNumber(n);
+    } else {
+      sound[f.key] = n;
+    }
     refresh();
   });
   soundInputs.set(f.key, input);
 }
+
+// Enforce env.n === sound.amplitude after the inputs are constructed (URL
+// load may have populated mismatched values; treat sound.amplitude as the
+// authoritative side since it's what selects the envelope at playback).
+setEnvelopeNumber(sound.amplitude);
+envNInput.addEventListener("input", () => {
+  const n = Number(envNInput.value);
+  if (!Number.isFinite(n)) return;
+  setEnvelopeNumber(n);
+  refresh();
+});
 
 envelopeLine.addEventListener("input", () => {
   const parsed = parseEnvelope(envelopeLine.value);
@@ -205,6 +235,7 @@ envelopeLine.addEventListener("input", () => {
   }
   envelopeLine.classList.remove("invalid");
   Object.assign(env, parsed);
+  setEnvelopeNumber(env.n);
   for (const f of ENV_FIELDS) {
     const input = envInputs.get(f.key);
     if (input) input.value = String(env[f.key]);
@@ -220,6 +251,7 @@ soundLine.addEventListener("input", () => {
   }
   soundLine.classList.remove("invalid");
   Object.assign(sound, parsed);
+  setEnvelopeNumber(sound.amplitude);
   for (const f of SOUND_FIELDS) {
     const input = soundInputs.get(f.key);
     if (input) input.value = String(sound[f.key]);
@@ -238,6 +270,7 @@ function setActivePreset(idx: number | null): void {
 function loadPreset(p: Preset, idx: number): void {
   Object.assign(env, p.env);
   Object.assign(sound, p.sound);
+  setEnvelopeNumber(sound.amplitude);
   for (const f of ENV_FIELDS) {
     const input = envInputs.get(f.key);
     if (input) input.value = String(env[f.key]);
