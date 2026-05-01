@@ -150,13 +150,6 @@ export const PRESETS: Preset[] = [
     sound: { channel: 2, amplitude: 2, pitch: 44, duration: 8 },
   },
   {
-    name: "Elite: dying",
-    description: "Elite — first part of the death sound; also used for hits/kills (envelope 3)",
-    env: { n: 3, t: 1, pi1: 1, pi2: -1, pi3: -3, pn1: 17, pn2: 32, pn3: 128,
-           aa: 1, ad: 0, as: 0, ar: -1, ala: 1, ald: 1 },
-    sound: { channel: 1, amplitude: 3, pitch: 240, duration: 24 },
-  },
-  {
     name: "Elite: ECM",
     description: "Elite — E.C.M. (Electronic Counter Measures) firing; envelope 4 with sweeping pitch over a long duration",
     env: { n: 4, t: 1, pi1: 4, pi2: -8, pi3: 44, pn1: 4, pn2: 6, pn3: 8,
@@ -176,13 +169,6 @@ export const PRESETS: Preset[] = [
     env: { n: 1, t: 2, pi1: -5, pi2: -3, pi3: -5, pn1: 2, pn2: 3, pn3: 50,
            aa: 126, ad: -7, as: -7, ar: -12, ala: 126, ald: 0 },
     sound: { channel: 2, amplitude: 1, pitch: 80, duration: 2 },
-  },
-  {
-    name: "Thrust: explosion",
-    description: "Thrust — explosion tone component on channel 1 (envelope 2; the original game pairs this with a parallel noise burst)",
-    env: { n: 2, t: 2, pi1: -1, pi2: 0, pi3: 1, pn1: 9, pn2: 9, pn3: 9,
-           aa: 0, ad: 0, as: 0, ar: 1, ala: 1, ald: 1 },
-    sound: { channel: 1, amplitude: 2, pitch: 150, duration: 40 },
   },
   {
     name: "Thrust: hostile",
@@ -247,5 +233,19 @@ export const PRESETS: Preset[] = [
     env: { n: 1, t: 8, pi1: 1, pi2: -1, pi3: 1, pn1: 1, pn2: 1, pn3: 1,
            aa: 121, ad: -10, as: -5, ar: -2, ala: 120, ald: 1 },
     sound: { channel: 1, amplitude: 1, pitch: 100, duration: 40 },
+  },
+  {
+    name: "UG #8 sweep",
+    description: "BBC User Guide example — large negative pitch deltas wrap the chip's 8-bit pitch register, producing a rapidly cycling sweep. Held loud (AA=127, AR=0) over a short SOUND duration so the wrapping pitch is the dominant feature.",
+    env: { n: 1, t: 1, pi1: -26, pi2: -36, pi3: -45, pn1: 255, pn2: 255, pn3: 255,
+           aa: 127, ad: 0, as: 0, ar: 0, ala: 126, ald: 0 },
+    sound: { channel: 1, amplitude: 1, pitch: 1, duration: 1 },
+  },
+  {
+    name: "UG #9 ramp",
+    description: "BBC User Guide example — three-section pitch envelope with large excursions (rise +100, drop -200, rise +200 per loop). Net +100 per loop produces an upward-drifting sweep over a long held-loud tone.",
+    env: { n: 2, t: 3, pi1: 2, pi2: -4, pi3: 4, pn1: 50, pn2: 50, pn3: 50,
+           aa: 127, ad: 0, as: 0, ar: 0, ala: 126, ald: 0 },
+    sound: { channel: 1, amplitude: 2, pitch: 1, duration: 10 },
   },
 ];
