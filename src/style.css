@@ -114,6 +114,12 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 }
 .field input:focus,
 .field select:focus { outline: 1px solid #58a6ff; }
+.field input:disabled,
+.field select:disabled { color: #484f58; cursor: not-allowed; }
+.field.disabled,
+h3.disabled,
+.grid.disabled { opacity: 0.45; }
+.grid.disabled { pointer-events: none; }
 
 #play, #stop, #share-link, #run-emulator {
   color: white;

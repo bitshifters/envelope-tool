@@ -282,9 +282,18 @@ const pitchInputWrap = soundInputs.get("pitch")!.closest("label") as HTMLElement
 
 function applyChannelMode(): void {
   const isNoise = sound.channel === 0;
-  pitchH3.style.display = isNoise ? "none" : "";
-  pitchGrid.style.display = isNoise ? "none" : "";
-  pitchInputWrap.style.display = isNoise ? "none" : "";
+  // Grey out the pitch envelope inputs rather than hiding the section, so
+  // the layout doesn't jump when switching channels. Same treatment for the
+  // SOUND pitch number input (replaced by the noise-mode dropdown).
+  pitchH3.classList.toggle("disabled", isNoise);
+  pitchGrid.classList.toggle("disabled", isNoise);
+  for (const f of PITCH_FIELDS) {
+    const i = envInputs.get(f.key);
+    if (i) i.disabled = isNoise;
+  }
+  pitchInputWrap.classList.toggle("disabled", isNoise);
+  const pitchInput = soundInputs.get("pitch");
+  if (pitchInput) pitchInput.disabled = isNoise;
   noiseModeWrap.style.display = isNoise ? "" : "none";
   if (isNoise) {
     // Channel 0 only uses low 3 bits of P; clamp once on entry so the URL,
@@ -292,8 +301,7 @@ function applyChannelMode(): void {
     const clamped = sound.pitch & 0x07;
     if (clamped !== sound.pitch) {
       sound.pitch = clamped;
-      const pi = soundInputs.get("pitch");
-      if (pi) pi.value = String(sound.pitch);
+      if (pitchInput) pitchInput.value = String(sound.pitch);
     }
     noiseSelect.value = String(sound.pitch);
   }
