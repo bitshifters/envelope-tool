@@ -49,6 +49,31 @@ export interface Sample {
 const PITCH_NO_REPEAT_BIT = 0x80;
 
 /**
+ * SN76489 noise channel mode. The chip's noise control register is 3 bits:
+ * bit 2 selects feedback type (0 = periodic, 1 = white), bits 1..0 select
+ * the LFSR shift rate. Rate 3 ("follows tone2 period") is decoded but the
+ * audio engine treats it as `medium` — see CLAUDE.md / future work.
+ */
+export type NoiseRate = 0 | 1 | 2 | 3;
+export interface NoiseMode {
+  type: "periodic" | "white";
+  rate: NoiseRate;
+}
+
+/**
+ * Decode the BBC SOUND pitch argument for channel 0 into noise type + rate.
+ * Only the low 3 bits matter; the OS masks higher bits when writing the
+ * chip's noise control register.
+ */
+export function decodeNoiseP(pitch: number): NoiseMode {
+  const p = (pitch | 0) & 0x07;
+  return {
+    type: (p & 0x04) !== 0 ? "white" : "periodic",
+    rate: (p & 0x03) as NoiseRate,
+  };
+}
+
+/**
  * Expand an envelope into a stream of per-centisecond samples for a given
  * SOUND command. `soundDuration` is in 1/20 s units (the BBC unit), and the
  * release runs after that elapses.
@@ -56,7 +81,7 @@ const PITCH_NO_REPEAT_BIT = 0x80;
  * The returned stream covers attack + decay + sustain + release, i.e. the
  * full audible lifetime of the note.
  */
-export function expand(env: Envelope, soundAmplitude: number, soundDuration: number, hold = false): Sample[] {
+export function expand(env: Envelope, soundAmplitude: number, soundDuration: number, hold = false, channel = 1): Sample[] {
   const samples: Sample[] = [];
 
   // SOUND amplitude argument: 0 = silence, -15..-1 = static volume, 1..4 = envelope number.
@@ -100,6 +125,7 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   //     resets offset and runs the same tick's step from section 0, so the
   //     wrap itself doesn't cost extra time (matches a normal step interval).
   const stepPitch = () => {
+    if (channel === 0) return; // noise channel ignores PI/PN entirely
     if (tStep === 0) return; // T=0 disables the pitch envelope
     if (sectionIdx >= sections.length) {
       if (!repeat) return;

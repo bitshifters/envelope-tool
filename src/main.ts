@@ -1,6 +1,7 @@
 import "./style.css";
 import {
   DEFAULT_ENVELOPE,
+  decodeNoiseP,
   expand,
   formatBasic,
   formatSound,
@@ -52,7 +53,7 @@ interface SoundParams {
 const DEFAULT_SOUND: SoundParams = { channel: 1, amplitude: 1, pitch: 100, duration: 20 };
 
 const SOUND_FIELDS: { key: keyof SoundParams; code: string; label: string; min: number; max: number; hint: string }[] = [
-  { key: "channel",   code: "C", label: "Channel",   min: 1, max: 3,   hint: "1..3 = tone (channel 0 noise is not supported by this tool)" },
+  { key: "channel",   code: "C", label: "Channel",   min: 0, max: 3,   hint: "0 = noise, 1..3 = tone" },
   { key: "amplitude", code: "A", label: "Amplitude", min: 1, max: 4,   hint: "1..4 selects envelope number (negative static volumes are not supported by this tool)" },
   { key: "pitch",     code: "P", label: "Pitch",     min: 0, max: 255, hint: "4 units per semitone, 48 per octave" },
   { key: "duration",  code: "D", label: "Duration",  min: 1, max: 255, hint: "in 1/20 s" },
@@ -108,9 +109,14 @@ function setEnvelopeNumber(n: number): void {
   if (ampInput) ampInput.value = String(c);
 }
 
+function currentNoiseMode(): ReturnType<typeof decodeNoiseP> | null {
+  return sound.channel === 0 ? decodeNoiseP(sound.pitch) : null;
+}
+
 function refresh(skipLine?: "envelope" | "sound"): void {
-  currentSamples = expand(env, sound.amplitude, sound.duration, holdEnabled);
-  render(canvas, currentSamples, sound.pitch, playheadFraction());
+  applyChannelMode();
+  currentSamples = expand(env, sound.amplitude, sound.duration, holdEnabled, sound.channel);
+  render(canvas, currentSamples, sound.pitch, playheadFraction(), currentNoiseMode());
   if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
   if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration, holdEnabled);
   updateUrlParams();
@@ -156,7 +162,7 @@ function animatePlayhead(): void {
   if (playheadRaf !== null) return;
   const tick = () => {
     const f = playheadFraction();
-    render(canvas, currentSamples, sound.pitch, f);
+    render(canvas, currentSamples, sound.pitch, f, currentNoiseMode());
     if (f === null) {
       playheadRaf = null;
       return;
@@ -225,6 +231,72 @@ for (const f of SOUND_FIELDS) {
     refresh();
   });
   soundInputs.set(f.key, input);
+}
+
+// Noise-mode select. Sits in the SOUND grid alongside the pitch input but is
+// only visible when channel === 0; encodes the low 3 bits of the SOUND P arg
+// per the SN76489AN noise control register (bit 2 = type, bits 1..0 = rate).
+const noiseModeWrap = document.createElement("label");
+noiseModeWrap.className = "field";
+noiseModeWrap.title = "SN76489AN noise control: bit 2 = type, bits 1..0 = LFSR shift rate (P=3/7 'follows tone 2' currently treated as medium)";
+{
+  const lbl = document.createElement("span");
+  lbl.className = "field-label";
+  const name = document.createElement("span");
+  name.className = "field-name";
+  name.textContent = "Noise mode";
+  const codeEl = document.createElement("code");
+  codeEl.className = "field-code";
+  codeEl.textContent = "P";
+  lbl.append(name, codeEl);
+  noiseModeWrap.appendChild(lbl);
+}
+const noiseSelect = document.createElement("select");
+const NOISE_OPTIONS: Array<[number, string]> = [
+  [0, "Periodic, high"],
+  [1, "Periodic, medium"],
+  [2, "Periodic, low"],
+  [3, "Periodic, follows tone 2"],
+  [4, "White, high"],
+  [5, "White, medium"],
+  [6, "White, low"],
+  [7, "White, follows tone 2"],
+];
+for (const [v, label] of NOISE_OPTIONS) {
+  const o = document.createElement("option");
+  o.value = String(v);
+  o.textContent = `${label}  (P=${v})`;
+  noiseSelect.appendChild(o);
+}
+noiseSelect.addEventListener("change", () => {
+  sound.pitch = Number(noiseSelect.value);
+  const pi = soundInputs.get("pitch");
+  if (pi) pi.value = String(sound.pitch);
+  refresh();
+});
+noiseModeWrap.appendChild(noiseSelect);
+soundGrid.appendChild(noiseModeWrap);
+
+const pitchH3 = pitchGrid.previousElementSibling as HTMLElement;
+const pitchInputWrap = soundInputs.get("pitch")!.closest("label") as HTMLElement;
+
+function applyChannelMode(): void {
+  const isNoise = sound.channel === 0;
+  pitchH3.style.display = isNoise ? "none" : "";
+  pitchGrid.style.display = isNoise ? "none" : "";
+  pitchInputWrap.style.display = isNoise ? "none" : "";
+  noiseModeWrap.style.display = isNoise ? "" : "none";
+  if (isNoise) {
+    // Channel 0 only uses low 3 bits of P; clamp once on entry so the URL,
+    // BASIC line, and select all stay consistent.
+    const clamped = sound.pitch & 0x07;
+    if (clamped !== sound.pitch) {
+      sound.pitch = clamped;
+      const pi = soundInputs.get("pitch");
+      if (pi) pi.value = String(sound.pitch);
+    }
+    noiseSelect.value = String(sound.pitch);
+  }
 }
 
 // Enforce env.n === sound.amplitude after the inputs are constructed (URL
@@ -329,7 +401,7 @@ function playOnce(): void {
   // so audio playback is just a single play() call — no setTimeout-based
   // re-trigger. Mirrors BBC SOUND duration -1 semantics: envelope keeps
   // running, doesn't restart from the top.
-  play(currentSamples, sound.pitch);
+  play(currentSamples, sound.pitch, currentNoiseMode());
   animatePlayhead();
 }
 
@@ -339,7 +411,7 @@ function stopAll(): void {
     cancelAnimationFrame(playheadRaf);
     playheadRaf = null;
   }
-  render(canvas, currentSamples, sound.pitch, null);
+  render(canvas, currentSamples, sound.pitch, null, currentNoiseMode());
 }
 
 document.getElementById("play")!.addEventListener("click", () => {
@@ -409,11 +481,11 @@ refresh();
 // interaction. The fallback no-ops if the immediate attempt already kicked
 // audio into the running state.
 if (autoplayRequested) {
-  play(currentSamples, sound.pitch);
+  play(currentSamples, sound.pitch, currentNoiseMode());
   animatePlayhead();
   const playOnGesture = (): void => {
     if (!audioContextIsRunning()) {
-      play(currentSamples, sound.pitch);
+      play(currentSamples, sound.pitch, currentNoiseMode());
       animatePlayhead();
     }
     document.removeEventListener("click", playOnGesture);

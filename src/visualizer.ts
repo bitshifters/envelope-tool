@@ -1,4 +1,4 @@
-import type { Sample } from "./envelope";
+import type { NoiseMode, Sample } from "./envelope";
 
 const PHASE_COLOURS: Record<Sample["phase"], string> = {
   attack: "#4ea8de",
@@ -12,6 +12,7 @@ export function render(
   samples: Sample[],
   basePitch: number,
   playhead: number | null = null,
+  noiseMode: NoiseMode | null = null,
 ): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -38,7 +39,15 @@ export function render(
   ctx.fillStyle = "#8b949e";
   ctx.font = "12px system-ui, sans-serif";
   ctx.fillText("Amplitude (0..126)", padding, ampTop - 6);
-  ctx.fillText(`Pitch (BBC units, 4 = 1 semitone)  —  ${samples.length} centiseconds`, padding, pitchTop - 6);
+  if (noiseMode) {
+    const rateLabels = ["high", "medium", "low", "follows tone2 (treated as medium)"] as const;
+    ctx.fillText(
+      `Noise: ${noiseMode.type}, ${rateLabels[noiseMode.rate]}  —  ${samples.length} centiseconds`,
+      padding, pitchTop - 6,
+    );
+  } else {
+    ctx.fillText(`Pitch (BBC units, 4 = 1 semitone)  —  ${samples.length} centiseconds`, padding, pitchTop - 6);
+  }
 
   const xFor = (i: number) =>
     padding + (samples.length === 1 ? 0 : (i / (samples.length - 1)) * plotW);
@@ -111,59 +120,82 @@ export function render(
   ctx.textBaseline = "alphabetic";
   ctx.font = "12px system-ui, sans-serif";
 
-  // Pitch plot: absolute BBC pitch (basePitch + envelope offset, wrapped
-  // mod 256 to match the BBC's single-byte pitch register). Auto-scale
-  // around the actual pitches used with at least one semitone of headroom
-  // each side, snapping to semitone boundaries.
-  const wrappedPitch = (offset: number): number => (basePitch + offset) & 0xff;
-  let minP = basePitch, maxP = basePitch;
-  for (const s of samples) {
-    const p = wrappedPitch(s.pitchOffset);
-    if (p < minP) minP = p;
-    if (p > maxP) maxP = p;
-  }
-  const headroom = Math.max(4, Math.round((maxP - minP) * 0.15));
-  minP = Math.floor((minP - headroom) / 4) * 4;
-  maxP = Math.ceil((maxP + headroom) / 4) * 4;
-  if (maxP === minP) maxP = minP + 4;
-
-  const pitchY = (p: number) => pitchTop + halfH - ((p - minP) / (maxP - minP)) * halfH;
-
-  // Semitone gridlines (light) and octave gridlines (stronger, labelled).
-  for (let p = Math.ceil(minP / 4) * 4; p <= maxP; p += 4) {
-    ctx.strokeStyle = p % 48 === 0 ? "#30363d" : "#1c2128";
-    ctx.beginPath();
-    ctx.moveTo(padding, pitchY(p));
-    ctx.lineTo(padding + plotW, pitchY(p));
-    ctx.stroke();
-    if (p % 48 === 0) {
-      ctx.fillStyle = "#6e7681";
-      ctx.fillText(String(p), padding + 4, pitchY(p) - 2);
+  if (!noiseMode) {
+    // Pitch plot: absolute BBC pitch (basePitch + envelope offset, wrapped
+    // mod 256 to match the BBC's single-byte pitch register). Auto-scale
+    // around the actual pitches used with at least one semitone of headroom
+    // each side, snapping to semitone boundaries.
+    const wrappedPitch = (offset: number): number => (basePitch + offset) & 0xff;
+    let minP = basePitch, maxP = basePitch;
+    for (const s of samples) {
+      const p = wrappedPitch(s.pitchOffset);
+      if (p < minP) minP = p;
+      if (p > maxP) maxP = p;
     }
-  }
+    const headroom = Math.max(4, Math.round((maxP - minP) * 0.15));
+    minP = Math.floor((minP - headroom) / 4) * 4;
+    maxP = Math.ceil((maxP + headroom) / 4) * 4;
+    if (maxP === minP) maxP = minP + 4;
 
-  // Base pitch reference line (dashed).
-  ctx.strokeStyle = "#56cfe1";
-  ctx.setLineDash([3, 4]);
-  ctx.beginPath();
-  ctx.moveTo(padding, pitchY(basePitch));
-  ctx.lineTo(padding + plotW, pitchY(basePitch));
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#56cfe1";
-  ctx.fillText(`base ${basePitch}`, padding + plotW - 60, pitchY(basePitch) - 2);
+    const pitchY = (p: number) => pitchTop + halfH - ((p - minP) / (maxP - minP)) * halfH;
 
-  // Pitch trajectory.
-  ctx.beginPath();
-  ctx.strokeStyle = "#ffd166";
-  ctx.lineWidth = 2;
-  for (let i = 0; i < samples.length; i++) {
-    const x = xFor(i);
-    const y = pitchY(wrappedPitch(samples[i]!.pitchOffset));
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    // Semitone gridlines (light) and octave gridlines (stronger, labelled).
+    for (let p = Math.ceil(minP / 4) * 4; p <= maxP; p += 4) {
+      ctx.strokeStyle = p % 48 === 0 ? "#30363d" : "#1c2128";
+      ctx.beginPath();
+      ctx.moveTo(padding, pitchY(p));
+      ctx.lineTo(padding + plotW, pitchY(p));
+      ctx.stroke();
+      if (p % 48 === 0) {
+        ctx.fillStyle = "#6e7681";
+        ctx.fillText(String(p), padding + 4, pitchY(p) - 2);
+      }
+    }
+
+    // Base pitch reference line (dashed).
+    ctx.strokeStyle = "#56cfe1";
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding, pitchY(basePitch));
+    ctx.lineTo(padding + plotW, pitchY(basePitch));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#56cfe1";
+    ctx.fillText(`base ${basePitch}`, padding + plotW - 60, pitchY(basePitch) - 2);
+
+    // Pitch trajectory.
+    ctx.beginPath();
+    ctx.strokeStyle = "#ffd166";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < samples.length; i++) {
+      const x = xFor(i);
+      const y = pitchY(wrappedPitch(samples[i]!.pitchOffset));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  } else {
+    // Noise channel: pitch plot is replaced by a centred mode caption.
+    ctx.fillStyle = "#8b949e";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 14px system-ui, sans-serif";
+    ctx.fillText(
+      `${noiseMode.type.toUpperCase()} noise`,
+      padding + plotW / 2,
+      pitchTop + halfH / 2 - 8,
+    );
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.fillStyle = "#6e7681";
+    const rateNames = ["high (~7.8 kHz)", "medium (~3.9 kHz)", "low (~2.0 kHz)", "follows tone 2"] as const;
+    ctx.fillText(
+      `LFSR shift rate: ${rateNames[noiseMode.rate]}`,
+      padding + plotW / 2,
+      pitchTop + halfH / 2 + 12,
+    );
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
   }
-  ctx.stroke();
 
   if (playhead !== null && playhead >= 0 && playhead <= 1) {
     const x = padding + playhead * plotW;

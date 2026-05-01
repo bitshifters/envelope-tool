@@ -105,6 +105,52 @@ export const PRESETS: Preset[] = [
            aa: 20, ad: -1, as: 0, ar: -5, ala: 110, ald: 90 },
     sound: { channel: 1, amplitude: 1, pitch: 90, duration: 100 },
   },
+  // Noise channel (channel 0) presets. The BBC's SN76489AN noise generator
+  // takes only 3 bits of the SOUND P arg: bit 2 = type (0 periodic, 1 white),
+  // bits 1..0 = LFSR shift rate (0 high, 1 medium, 2 low). T/PI/PN are
+  // ignored on this channel so the envelope is purely amplitude-shaped.
+  {
+    name: "Noise: kick",
+    description: "Channel 0 percussion — periodic noise at low shift rate gives a deep punchy thump",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: -25, as: -10, ar: -40, ala: 126, ald: 30 },
+    sound: { channel: 0, amplitude: 1, pitch: 2, duration: 6 },
+  },
+  {
+    name: "Noise: snare",
+    description: "Channel 0 percussion — white noise, medium rate, short sharp envelope",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: -15, as: -8, ar: -20, ala: 126, ald: 60 },
+    sound: { channel: 0, amplitude: 1, pitch: 5, duration: 8 },
+  },
+  {
+    name: "Noise: hat",
+    description: "Channel 0 percussion — white noise at high rate, very short",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: -40, as: -30, ar: -60, ala: 126, ald: 30 },
+    sound: { channel: 0, amplitude: 1, pitch: 4, duration: 3 },
+  },
+  {
+    name: "Noise: cymbal",
+    description: "Channel 0 percussion — white noise high rate with a long ringing tail",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: -2, as: -3, ar: -2, ala: 126, ald: 100 },
+    sound: { channel: 0, amplitude: 1, pitch: 4, duration: 40 },
+  },
+  {
+    name: "Noise: bass buzz",
+    description: "Channel 0 'periodic bass' trick — periodic noise low rate with the LFSR period producing a pitched buzz, sustained",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 60, ad: -1, as: 0, ar: -10, ala: 110, ald: 100 },
+    sound: { channel: 0, amplitude: 1, pitch: 2, duration: 40 },
+  },
+  {
+    name: "Noise: explosion",
+    description: "Channel 0 — sustained white noise with slow decay, classic 8-bit explosion bed",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: -3, as: -2, ar: -4, ala: 126, ald: 80 },
+    sound: { channel: 0, amplitude: 1, pitch: 6, duration: 30 },
+  },
   // The presets below are sourced from disassemblies of classic BBC Micro
   // games. Each ENVELOPE row is the 14-byte sound chip configuration the
   // game uploads via OSWORD &08 or BASIC ENVELOPE. SOUND parameters are
