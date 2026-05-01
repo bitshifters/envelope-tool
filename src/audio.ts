@@ -72,6 +72,11 @@ export function stop(): void {
   playDuration = null;
 }
 
+/** True if the AudioContext exists and is actively producing audio. */
+export function audioContextIsRunning(): boolean {
+  return ctx?.state === "running";
+}
+
 /**
  * Fraction (0..1) of the way through the currently-playing note, or null
  * when nothing is playing. Used to drive the visualiser playhead.

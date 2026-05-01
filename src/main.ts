@@ -9,7 +9,7 @@ import {
   type Envelope,
 } from "./envelope";
 import { render } from "./visualizer";
-import { play, playheadFraction, stop } from "./audio";
+import { audioContextIsRunning, play, playheadFraction, stop } from "./audio";
 import { PRESETS, type Preset } from "./presets";
 
 interface FieldSpec {
@@ -61,6 +61,9 @@ const SOUND_FIELDS: { key: keyof SoundParams; code: string; label: string; min: 
 const env: Envelope = { ...DEFAULT_ENVELOPE };
 const sound: SoundParams = { ...DEFAULT_SOUND };
 
+// Capture before refresh() rewrites the URL via history.replaceState (which
+// strips presence-only params like `play`).
+const autoplayRequested = new URLSearchParams(location.search).has("play");
 loadFromUrlParams();
 
 const canvas = document.getElementById("viz") as HTMLCanvasElement;
@@ -311,6 +314,25 @@ document.getElementById("stop")!.addEventListener("click", () => {
   render(canvas, currentSamples, sound.pitch, null);
 });
 
+document.getElementById("share-link")!.addEventListener("click", async (e) => {
+  // Build a URL that reproduces current state and triggers autoplay on land.
+  // location.search already has the live env/sound params (refresh keeps it
+  // in sync); we just append the presence-only `play`.
+  const search = location.search ? `${location.search}&play` : "?play";
+  const shareUrl = `${location.origin}${location.pathname}${search}`;
+  const btn = e.currentTarget as HTMLButtonElement;
+  const originalText = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    btn.textContent = "Copied!";
+  } catch {
+    // Fallback: prompt so the user can copy manually.
+    window.prompt("Share URL:", shareUrl);
+    return;
+  }
+  setTimeout(() => { btn.textContent = originalText; }, 1500);
+});
+
 document.getElementById("run-emulator")!.addEventListener("click", () => {
   // jsbeeb (bbc.xania.org) takes URL-encoded BASIC via embedBasic, with
   // &autorun to type RUN after tokenising. Two numbered lines are enough:
@@ -338,3 +360,23 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
 }
 
 refresh();
+
+// `?play` (presence-only) starts playback automatically. Modern browsers
+// block AudioContext.resume() outside of a user gesture, so we both try
+// immediately AND attach a one-time fallback that fires on the first user
+// interaction. The fallback no-ops if the immediate attempt already kicked
+// audio into the running state.
+if (autoplayRequested) {
+  play(currentSamples, sound.pitch);
+  animatePlayhead();
+  const playOnGesture = (): void => {
+    if (!audioContextIsRunning()) {
+      play(currentSamples, sound.pitch);
+      animatePlayhead();
+    }
+    document.removeEventListener("click", playOnGesture);
+    document.removeEventListener("keydown", playOnGesture);
+  };
+  document.addEventListener("click", playOnGesture);
+  document.addEventListener("keydown", playOnGesture);
+}

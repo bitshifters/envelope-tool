@@ -113,7 +113,7 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 }
 .field input:focus { outline: 1px solid #58a6ff; }
 
-#play, #stop, #run-emulator {
+#play, #stop, #share-link, #run-emulator {
   color: white;
   border: none;
   border-radius: 4px;
@@ -126,7 +126,9 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 #play:hover { background: #2ea043; }
 #stop { background: #6e7681; }
 #stop:hover { background: #8b949e; }
-#run-emulator { background: #1f6feb; margin-left: auto; margin-right: 0; }
+#share-link { background: #30363d; margin-left: auto; }
+#share-link:hover { background: #484f58; }
+#run-emulator { background: #1f6feb; margin-right: 0; }
 #run-emulator:hover { background: #388bfd; }
 
 .basic-row {
