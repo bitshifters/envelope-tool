@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BBC Micro ENVELOPE editor</title>
+  </head>
+  <body>
+    <main id="app">
+      <header>
+        <h1>BBC Micro <code>ENVELOPE</code> editor</h1>
+        <p class="subtitle">
+          Edit, visualise, and audition <code>ENVELOPE</code> parameters for
+          the BBC Micro <code>SOUND</code> command.
+        </p>
+      </header>
+
+      <section class="panel" id="envelope-panel">
+        <h2>Envelope (N=1)</h2>
+        <div class="grid" id="envelope-grid"></div>
+        <pre class="basic-line"><code id="basic-line">ENVELOPE 1, ...</code></pre>
+      </section>
+
+      <section class="panel">
+        <h2>Sound parameters</h2>
+        <div class="grid" id="sound-grid"></div>
+        <button id="play">Play</button>
+        <button id="stop">Stop</button>
+      </section>
+
+      <section class="panel">
+        <h2>Visualisation</h2>
+        <canvas id="viz" width="900" height="320"></canvas>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
