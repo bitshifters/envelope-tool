@@ -61,6 +61,8 @@ const SOUND_FIELDS: { key: keyof SoundParams; code: string; label: string; min: 
 const env: Envelope = { ...DEFAULT_ENVELOPE };
 const sound: SoundParams = { ...DEFAULT_SOUND };
 
+loadFromUrlParams();
+
 const canvas = document.getElementById("viz") as HTMLCanvasElement;
 const envelopeLine = document.getElementById("envelope-line") as HTMLInputElement;
 const soundLine = document.getElementById("sound-line") as HTMLInputElement;
@@ -87,6 +89,38 @@ function refresh(skipLine?: "envelope" | "sound"): void {
   render(canvas, currentSamples, sound.pitch, playheadFraction());
   if (skipLine !== "envelope") envelopeLine.value = formatBasic(env);
   if (skipLine !== "sound") soundLine.value = formatSound(sound.channel, sound.amplitude, sound.pitch, sound.duration);
+  updateUrlParams();
+}
+
+/**
+ * Reflect the current envelope + sound state into the URL query string so
+ * the page can be shared. Uses history.replaceState (no new history entry
+ * per keystroke). Format mirrors the BASIC syntax: `?env=N,T,...&sound=C,A,P,D`.
+ */
+function updateUrlParams(): void {
+  const envValues = [env.n, env.t, env.pi1, env.pi2, env.pi3, env.pn1, env.pn2, env.pn3,
+                     env.aa, env.ad, env.as, env.ar, env.ala, env.ald].join(",");
+  const soundValues = [sound.channel, sound.amplitude, sound.pitch, sound.duration].join(",");
+  const params = new URLSearchParams({ env: envValues, sound: soundValues });
+  history.replaceState(null, "", `?${params.toString()}`);
+}
+
+/**
+ * Parse env/sound from the URL query string on page load. Anything missing
+ * or malformed is silently ignored — defaults stay in place.
+ */
+function loadFromUrlParams(): void {
+  const params = new URLSearchParams(location.search);
+  const envStr = params.get("env");
+  if (envStr) {
+    const parsed = parseEnvelope(envStr);
+    if (parsed) Object.assign(env, parsed);
+  }
+  const soundStr = params.get("sound");
+  if (soundStr) {
+    const parsed = parseSound(soundStr);
+    if (parsed) Object.assign(sound, parsed);
+  }
 }
 
 function animatePlayhead(): void {
