@@ -109,7 +109,10 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   let pitchOffset = 0;
   let sectionIdx = 0;
   let stepInSection = 0;
-  let csUntilNextStep = Math.max(1, tStep);
+  // Start at 0 so the very first envelope tick fires on cs 0 — the BBC
+  // writes the initial volume immediately when SOUND fires, not after
+  // T cs of silence.
+  let csUntilNextStep = 0;
 
   // BBC-accurate pitch envelope advance. Subtleties:
   //   - When a section's PN is exhausted but the next section has PN > 0, the
@@ -175,29 +178,9 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   let zeroAmpCount = 0;
 
   while (csElapsed < MAX_CS) {
-    samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
-
-    // SOUND duration end forces release from any non-release phase. The check
-    // is per-cs so release starts at the right cs even if it's between
-    // envelope ticks; the actual release amp change happens on the next tick.
-    // In hold mode (BBC SOUND duration -1) the envelope keeps running its
-    // attack/decay/sustain phases without ever transitioning to release —
-    // we just stop emitting samples at the bound.
-    if (useEnvelope && csElapsed + 1 >= noteCentiseconds) {
-      if (hold) {
-        samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
-        return samples;
-      }
-      if (phase !== "release") {
-        phase = "release";
-        if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
-      }
-    }
-
-    // Envelope tick: pitch step *and* amplitude envelope advance every T cs.
-    // The trace from a real BBC OS shows amp updates land at exactly the same
-    // cadence as the pitch envelope — AA, AD, AS, AR are per envelope tick,
-    // not per centisecond. (Verified against jsbeeb headless trace.)
+    // Envelope tick — runs BEFORE emitting the cs sample so cs 0 reflects
+    // the post-attack state. (Real BBC writes the initial volume at SOUND
+    // start, not after a T-cs delay.)
     csUntilNextStep -= 1;
     if (csUntilNextStep <= 0) {
       stepPitch();
@@ -242,6 +225,24 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
       // Static amplitude: -15..-1 maps linearly to BBC level 0..126.
       const staticLevel = Math.round((-soundAmplitude / 15) * 126);
       amplitude = clamp(staticLevel, 0, 126);
+    }
+
+    samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
+
+    // SOUND duration end forces release from any non-release phase. The
+    // actual release amp change happens on the next tick.
+    if (useEnvelope && csElapsed + 1 >= noteCentiseconds) {
+      if (hold) {
+        samples.push({ pitchOffset, amplitude: clamp(amplitude, 0, 126), phase });
+        return samples;
+      }
+      if (phase !== "release") {
+        phase = "release";
+        if (releaseStartedAt < 0) releaseStartedAt = csElapsed;
+      }
+    }
+
+    if (!useEnvelope) {
       if (csElapsed + 1 >= noteCentiseconds) {
         samples.push({ pitchOffset, amplitude: 0, phase: "release" });
         return samples;
