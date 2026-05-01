@@ -8,9 +8,28 @@
 body { margin: 0; }
 
 main {
-  max-width: 960px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 16px 64px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "controls viz";
+  gap: 16px;
+  align-items: start;
+}
+.controls { grid-area: controls; }
+.viz-col { grid-area: viz; }
+.viz-panel { position: sticky; top: 16px; }
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-areas: "viz" "controls";
+  }
+  .viz-panel { position: static; }
 }
 
 h1 { font-size: 1.4rem; margin: 0 0 4px; }
