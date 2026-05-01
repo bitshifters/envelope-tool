@@ -206,6 +206,30 @@ export const PRESETS: Preset[] = [
     sound: { channel: 3, amplitude: 4, pitch: 194, duration: 80 },
   },
   {
+    name: "Elite: explosion",
+    description: "Elite — death / kill; SFX entry 24 in the cassette source — channel 0 white noise (P=7), originally static amp -15, duration 26",
+    // Original: SOUND 0,-15,7,26. Converted to a flat-max envelope with a
+    // hard release (AR=-127) so the noise cuts off cleanly when the SOUND
+    // duration ends — mimicking the real chip's gate behaviour.
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: 0, as: 0, ar: -127, ala: 126, ald: 126 },
+    sound: { channel: 0, amplitude: 1, pitch: 7, duration: 26 },
+  },
+  {
+    name: "Elite: missile",
+    description: "Elite — missile launch / ship launching from station; SFX entry 48 — channel 0 white noise (P=6), originally static amp -15",
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: 0, as: 0, ar: -127, ala: 126, ald: 126 },
+    sound: { channel: 0, amplitude: 1, pitch: 6, duration: 12 },
+  },
+  {
+    name: "Elite: hyperspace",
+    description: "Elite — hyperspace drive engaged; SFX entry 56 — channel 0 noise with envelope 2 (the same envelope used for laser hits) and pitch 96 (P&7 = 0 → periodic noise, high rate)",
+    env: { n: 2, t: 1, pi1: 14, pi2: -18, pi3: -1, pn1: 44, pn2: 32, pn3: 50,
+           aa: 6, ad: 1, as: 0, ar: -2, ala: 120, ald: 126 },
+    sound: { channel: 0, amplitude: 2, pitch: 96, duration: 16 },
+  },
+  {
     name: "Chuckie: blip",
     description: "Chuckie Egg (1983, A&F / Alderton) — short percussive bleep used for collecting eggs and similar",
     env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
@@ -232,6 +256,16 @@ export const PRESETS: Preset[] = [
     env: { n: 3, t: 4, pi1: 0, pi2: 0, pi3: 0, pn1: 1, pn2: 1, pn3: 1,
            aa: 126, ad: -4, as: -2, ar: -4, ala: 126, ald: 110 },
     sound: { channel: 2, amplitude: 3, pitch: 185, duration: 5 },
+  },
+  {
+    name: "Thrust: engine",
+    description: "Thrust — engine-thrust noise blip retriggered every frame while thrusting; channel 0 white noise medium rate (P=5), originally static amp -10",
+    // Original sound block: $10,$00,$F6,$FF,$05,$00,$03,$00 → channel 0,
+    // amp -10, pitch 5, duration 3. Converted to an envelope holding at
+    // ~84/126 (the BBC level corresponding to static -10) for the duration.
+    env: { n: 1, t: 1, pi1: 0, pi2: 0, pi3: 0, pn1: 0, pn2: 0, pn3: 0,
+           aa: 127, ad: 0, as: 0, ar: -127, ala: 84, ald: 84 },
+    sound: { channel: 0, amplitude: 1, pitch: 5, duration: 4 },
   },
   // Examples from the BBC Microcomputer User Guide chapter on SOUND/ENVELOPE.
   {

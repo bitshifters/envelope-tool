@@ -277,20 +277,15 @@ noiseSelect.addEventListener("change", () => {
 noiseModeWrap.appendChild(noiseSelect);
 soundGrid.appendChild(noiseModeWrap);
 
-const pitchH3 = pitchGrid.previousElementSibling as HTMLElement;
 const pitchInputWrap = soundInputs.get("pitch")!.closest("label") as HTMLElement;
 
 function applyChannelMode(): void {
   const isNoise = sound.channel === 0;
-  // Grey out the pitch envelope inputs rather than hiding the section, so
-  // the layout doesn't jump when switching channels. Same treatment for the
-  // SOUND pitch number input (replaced by the noise-mode dropdown).
-  pitchH3.classList.toggle("disabled", isNoise);
-  pitchGrid.classList.toggle("disabled", isNoise);
-  for (const f of PITCH_FIELDS) {
-    const i = envInputs.get(f.key);
-    if (i) i.disabled = isNoise;
-  }
+  // The pitch envelope is editable on noise channel too: the MOS writes
+  // the running pitch byte (low 3 bits) to the noise control register on
+  // every envelope tick, so T/PI/PN walk the noise mode (white/periodic +
+  // shift rate) over time. Only the SOUND pitch input is swapped for the
+  // noise-mode dropdown that picks the *starting* mode.
   pitchInputWrap.classList.toggle("disabled", isNoise);
   const pitchInput = soundInputs.get("pitch");
   if (pitchInput) pitchInput.disabled = isNoise;

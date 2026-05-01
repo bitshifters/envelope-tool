@@ -40,11 +40,7 @@ export function render(
   ctx.font = "12px system-ui, sans-serif";
   ctx.fillText("Amplitude (0..126)", padding, ampTop - 6);
   if (noiseMode) {
-    const rateLabels = ["high", "medium", "low", "follows tone2 (treated as medium)"] as const;
-    ctx.fillText(
-      `Noise: ${noiseMode.type}, ${rateLabels[noiseMode.rate]}  —  ${samples.length} centiseconds`,
-      padding, pitchTop - 6,
-    );
+    ctx.fillText(`Noise mode (${samples.length} centiseconds)`, padding, pitchTop - 6);
   } else {
     ctx.fillText(`Pitch (BBC units, 4 = 1 semitone)  —  ${samples.length} centiseconds`, padding, pitchTop - 6);
   }
@@ -175,26 +171,38 @@ export function render(
     }
     ctx.stroke();
   } else {
-    // Noise channel: pitch plot is replaced by a centred mode caption.
+    // Noise channel: pitch plot becomes a strip showing how the noise mode
+    // evolves over time. The MOS writes the running pitch byte (low 3 bits)
+    // into the noise control register on every envelope tick, so PI/PN walk
+    // the noise type+rate combinations during the note. We colour-band each
+    // cs by its current mode so the user can see when the chip switches.
+    const modeColour = (p: number): string => {
+      const isWhite = (p & 0x04) !== 0;
+      const rateBits = p & 0x03;
+      // White = warm, periodic = cool. Brightness encodes rate.
+      const whitePalette = ["#f4a261", "#e76f51", "#bc4749", "#6a040f"]; // high → low → tone2
+      const periodicPalette = ["#90e0ef", "#48cae4", "#0096c7", "#023e8a"];
+      return (isWhite ? whitePalette : periodicPalette)[rateBits]!;
+    };
+    const stripTop = pitchTop + halfH * 0.35;
+    const stripH = halfH * 0.3;
+    for (let i = 0; i < samples.length; i++) {
+      const x = xFor(i);
+      const xNext = i + 1 < samples.length ? xFor(i + 1) : padding + plotW;
+      const p = ((basePitch + samples[i]!.pitchOffset) | 0) & 0x07;
+      ctx.fillStyle = modeColour(p);
+      ctx.fillRect(x, stripTop, Math.max(1, xNext - x + 1), stripH);
+    }
     ctx.fillStyle = "#8b949e";
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "bold 14px system-ui, sans-serif";
-    ctx.fillText(
-      `${noiseMode.type.toUpperCase()} noise`,
-      padding + plotW / 2,
-      pitchTop + halfH / 2 - 8,
-    );
+    ctx.textBaseline = "alphabetic";
     ctx.font = "12px system-ui, sans-serif";
-    ctx.fillStyle = "#6e7681";
-    const rateNames = ["high (~7.8 kHz)", "medium (~3.9 kHz)", "low (~2.0 kHz)", "follows tone 2"] as const;
     ctx.fillText(
-      `LFSR shift rate: ${rateNames[noiseMode.rate]}`,
+      "Noise mode strip — warm = white, cool = periodic; brightness ↑ = faster shift rate",
       padding + plotW / 2,
-      pitchTop + halfH / 2 + 12,
+      stripTop - 6,
     );
     ctx.textAlign = "start";
-    ctx.textBaseline = "alphabetic";
   }
 
   if (playhead !== null && playhead >= 0 && playhead <= 1) {

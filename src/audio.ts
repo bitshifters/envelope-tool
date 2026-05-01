@@ -11,9 +11,6 @@ let activeNodes: ActiveNodes | null = null;
 let playStart: number | null = null;
 let playDuration: number | null = null;
 
-// Noise buffer cache, keyed by `${type}:${rate}` and rebuilt per AudioContext.
-let noiseBufferCache: { ctx: AudioContext; buffers: Map<string, AudioBuffer> } | null = null;
-
 // BBC Micro feeds the SN76489 at 4 MHz. The TI datasheet documents the noise
 // shift rate as clock/N where N ∈ {512, 1024, 2048} — i.e., the divisors are
 // applied to the raw input clock (the chip's own /16 prescaler is implied
@@ -23,56 +20,69 @@ const BBC_CHIP_CLOCK_HZ = 4_000_000;
 const NOISE_DIVISORS = [512, 1024, 2048] as const;
 
 /**
- * Build a tiled mono AudioBuffer of the SN76489AN noise output for one
- * (type, rate) combination. We simulate a 15-bit LFSR — white feeds back the
- * XOR of bits 0 and 1, periodic feeds back bit 0 only (period 15 → the
- * characteristic BBC "drum" buzz). The LFSR is advanced sub-sample-accurately
- * with a fractional counter so the output is correct at any AudioContext rate.
+ * Build a one-shot mono AudioBuffer covering the entire sample stream for the
+ * noise channel. The MOS writes the running pitch byte to the noise control
+ * register on every envelope tick, so the LFSR's type (white/periodic) and
+ * shift rate evolve as PI/PN advance the pitch envelope. We mirror that here:
+ * each centisecond of output is generated using the noise mode encoded in
+ * (basePitch + sample.pitchOffset) & 7. P=3 / P=7 ("follows tone 2") are
+ * punted to medium rate.
  *
- * Two seconds is plenty: white noise loops imperceptibly, periodic loops at
- * ~30 Hz/8 Hz so two seconds easily contains a whole number of cycles.
+ * LFSR algorithm matches jsbeeb (src/soundchip.js):
+ *   white    — feedback = bit0 ^ bit1, shifted into bit 14 (15-bit LFSR)
+ *   periodic — pure right shift, reload to 0x4000 (bit 14) when it reaches 0
  */
-function buildNoiseBuffer(ac: AudioContext, mode: NoiseMode): AudioBuffer {
+function buildNoiseBufferForStream(ac: AudioContext, samples: Sample[], basePitch: number): AudioBuffer {
   const sampleRate = ac.sampleRate;
-  const seconds = 2;
-  const n = Math.floor(sampleRate * seconds);
+  const seconds = samples.length * CS;
+  const n = Math.max(1, Math.floor(sampleRate * seconds));
   const buf = ac.createBuffer(1, n, sampleRate);
   const data = buf.getChannelData(0);
-
-  // Rate 3 ("follows tone2") is punted to medium (rate 1).
-  const rateIdx = mode.rate === 3 ? 1 : mode.rate;
-  const shiftHz = BBC_CHIP_CLOCK_HZ / NOISE_DIVISORS[rateIdx]!;
-  const shiftsPerSample = shiftHz / sampleRate;
 
   let lfsr = 0x4000;
   let phase = 0;
   let out = (lfsr & 1) === 1 ? 1 : -1;
+  const samplesPerCs = sampleRate * CS;
+  let prevCsIdx = -1;
+  let prevModeP = -1;
 
   for (let i = 0; i < n; i++) {
+    const csIdx = Math.min(samples.length - 1, Math.floor(i / samplesPerCs));
+    const p = ((basePitch + samples[csIdx]!.pitchOffset) | 0) & 0x07;
+    if (csIdx !== prevCsIdx) {
+      // The MOS only writes the noise control register when the pitch byte
+      // (low 3 bits) actually changes — env3 trace confirms: pure-volume
+      // envelopes emit zero noise-register writes. jsbeeb's `noisePoked`
+      // resets the LFSR to 0x4000 only on those writes. Mirror that: keep
+      // LFSR running normally on flat-pitch envelopes (clean white noise),
+      // and reset it whenever PI/PN advance the noise mode (gives the BBC's
+      // characteristic warble for pitch-modulated effects like hyperspace).
+      if (p !== prevModeP) {
+        lfsr = 0x4000;
+        phase = 0;
+        out = (lfsr & 1) === 1 ? 1 : -1;
+      }
+      prevCsIdx = csIdx;
+      prevModeP = p;
+    }
+    const isWhite = (p & 0x04) !== 0;
+    const rateBits = p & 0x03;
+    const rateIdx = rateBits === 3 ? 1 : rateBits;
+    const shiftsPerSample = (BBC_CHIP_CLOCK_HZ / NOISE_DIVISORS[rateIdx]!) / sampleRate;
+
     phase += shiftsPerSample;
     while (phase >= 1) {
       phase -= 1;
-      const fb = mode.type === "white"
-        ? (lfsr & 1) ^ ((lfsr >> 1) & 1)
-        : (lfsr & 1);
-      lfsr = ((lfsr >> 1) | (fb << 14)) & 0x7fff;
-      if (lfsr === 0) lfsr = 0x4000; // guard against the trivial lock-up state
+      if (isWhite) {
+        const fb = (lfsr & 1) ^ ((lfsr >> 1) & 1);
+        lfsr = ((lfsr >> 1) | (fb << 14)) & 0x7fff;
+      } else {
+        lfsr = lfsr >> 1;
+        if (lfsr === 0) lfsr = 0x4000;
+      }
       out = (lfsr & 1) === 1 ? 1 : -1;
     }
     data[i] = out;
-  }
-  return buf;
-}
-
-function getNoiseBuffer(ac: AudioContext, mode: NoiseMode): AudioBuffer {
-  if (!noiseBufferCache || noiseBufferCache.ctx !== ac) {
-    noiseBufferCache = { ctx: ac, buffers: new Map() };
-  }
-  const key = `${mode.type}:${mode.rate}`;
-  let buf = noiseBufferCache.buffers.get(key);
-  if (!buf) {
-    buf = buildNoiseBuffer(ac, mode);
-    noiseBufferCache.buffers.set(key, buf);
   }
   return buf;
 }
@@ -116,8 +126,10 @@ export function play(samples: Sample[], basePitch: number, noiseMode: NoiseMode 
 
   if (noiseMode) {
     const noiseSrc = ac.createBufferSource();
-    noiseSrc.buffer = getNoiseBuffer(ac, noiseMode);
-    noiseSrc.loop = true;
+    // The noise buffer is rendered to match the sample stream exactly,
+    // walking through whatever noise modes the running pitch byte selects
+    // each centisecond. No looping — playback length matches the envelope.
+    noiseSrc.buffer = buildNoiseBufferForStream(ac, samples, basePitch);
     noiseSrc.connect(gain).connect(ac.destination);
     source = noiseSrc;
   } else {

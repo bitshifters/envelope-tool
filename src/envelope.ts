@@ -81,7 +81,7 @@ export function decodeNoiseP(pitch: number): NoiseMode {
  * The returned stream covers attack + decay + sustain + release, i.e. the
  * full audible lifetime of the note.
  */
-export function expand(env: Envelope, soundAmplitude: number, soundDuration: number, hold = false, channel = 1): Sample[] {
+export function expand(env: Envelope, soundAmplitude: number, soundDuration: number, hold = false, _channel = 1): Sample[] {
   const samples: Sample[] = [];
 
   // SOUND amplitude argument: 0 = silence, -15..-1 = static volume, 1..4 = envelope number.
@@ -125,8 +125,11 @@ export function expand(env: Envelope, soundAmplitude: number, soundDuration: num
   //     resets offset and runs the same tick's step from section 0, so the
   //     wrap itself doesn't cost extra time (matches a normal step interval).
   const stepPitch = () => {
-    if (channel === 0) return; // noise channel ignores PI/PN entirely
     if (tStep === 0) return; // T=0 disables the pitch envelope
+    // Note: this runs on channel 0 too. The MOS writes the running pitch
+    // byte to the noise control register every envelope tick, so PI/PN
+    // walk the noise type+rate combinations over time — essential for
+    // effects like Elite's hyperspace warble.
     if (sectionIdx >= sections.length) {
       if (!repeat) return;
       sectionIdx = 0;
