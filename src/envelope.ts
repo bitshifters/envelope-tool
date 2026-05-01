@@ -189,11 +189,35 @@ export function formatSound(channel: number, amplitude: number, pitch: number, d
   return `SOUND ${channel},${amplitude},${pitch},${duration}`;
 }
 
+// MOS 1.20 pitch lookup tables ($EDFB and $EE07).
+// pitchLookupHigh packs two things: the low 2 bits give bits [9:8] of the
+// divider, and the top nybble gives the per-quarter-tone delta to subtract
+// for the fractional semitone interpolation.
+const PITCH_LOW =  [0xF0, 0xB7, 0x82, 0x4F, 0x20, 0xF3, 0xC8, 0xA0, 0x7B, 0x57, 0x35, 0x16];
+const PITCH_HIGH = [0xE7, 0xD7, 0xCB, 0xC3, 0xB7, 0xAA, 0xA2, 0x9A, 0x92, 0x8A, 0x82, 0x7A];
+
 /**
- * Map a BBC pitch byte (0..255, 4 units per semitone) to Hz. The BBC Micro
- * sound chip uses a divider scheme; this is a musically-accurate
- * approximation good enough for audition. Pitch 89 is conventionally A4.
+ * Map a BBC pitch byte (0..255) to Hz, replicating the MOS 1.20 algorithm
+ * (see Toby Lobster's disassembly §16). Octaves are produced by integer
+ * right-shifts of the 10-bit divider, which causes the BBC's tuning to drift
+ * slightly sharp of equal temperament in higher octaves — that quirk is
+ * what we want to reproduce so playback matches the real machine.
  */
 export function pitchToHz(pitch: number): number {
-  return 440 * Math.pow(2, (pitch - 89) / 48);
+  const p = clamp(pitch, 0, 255) | 0;
+  const fractional = p & 3;
+  let count = p >> 2;
+  let octave = 0;
+  while (count >= 12) {
+    octave += 1;
+    count -= 12;
+  }
+  const low = PITCH_LOW[count]!;
+  const high = PITCH_HIGH[count]!;
+  const baseDivider = ((high & 0x03) << 8) | low;
+  const fractionalDelta = (high & 0xf0) >> 4;
+  let divider = baseDivider - fractional * fractionalDelta;
+  for (let i = 0; i < octave; i++) divider = divider >> 1;
+  if (divider < 1) divider = 1;
+  return 4_000_000 / (32 * divider);
 }
