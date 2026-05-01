@@ -93,17 +93,27 @@ function getCtx(): AudioContext {
 }
 
 /**
- * Map a BBC envelope amplitude (0..126) to an audible gain that follows the
- * SN76489's 4-bit attenuation register. The OS converts amp via a lookup
- * table that's effectively `att = 15 - floor(amp / 8)` — verified against
- * a real-BBC trace where AD=-10 produced attenuations 0,2,3,4,5,7,8,9,10,
- * 12,13,14,15. amp 0..7 maps to attenuation 15 (silent on chip).
+ * Map a BBC envelope amplitude (0..126) to an audible gain via the MOS
+ * `setChannelXVolume` conversion at $eb0a (Toby Lobster S-s16 §3):
+ *
+ *     SEC / SBC #$40 / LSR x3 / EOR #$0F     (low 4 bits → SN attenuation)
+ *
+ * The BBC's working amplitude is a SIGNED byte (`channel0Volume`) spanning
+ * $C0 (silent) through $3F (loudest), wrapping through zero. Our model
+ * tracks unsigned amp 0..126; the corresponding chanVol is `(amp - $3F)`
+ * mod 256. This shifts each att band by one amp unit relative to the
+ * naïve `att = 15 - floor(amp/8)` — small but byte-accurate against the
+ * MOS algorithm. Note: there's evidence (env1 trace's skipped att values
+ * 1, 6, 11) that the OS has additional non-linear logic on top of this
+ * algorithm, not yet reverse-engineered.
  */
 function bbcAmpToGain(amp: number): number {
-  if (amp < 8) return 0;
-  const att = 15 - Math.floor(amp / 8);
+  const chanVol = (amp - 0x3F) & 0xff;
+  const att = (((chanVol - 0x40) & 0xff) >> 3) ^ 0x0f;
+  const lowNibble = att & 0x0f;
+  if (lowNibble >= 15) return 0;
   // SN76489 attenuation step is 2 dB. Loudest = 0, silent = 15.
-  return Math.pow(10, (-att * 2) / 20) * 0.4; // 0.4 = output headroom
+  return Math.pow(10, (-lowNibble * 2) / 20) * 0.4; // 0.4 = output headroom
 }
 
 /**
