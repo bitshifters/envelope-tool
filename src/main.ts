@@ -38,7 +38,7 @@ const AMP_FIELDS: FieldSpec[] = [
   { key: "ad",  code: "AD",  label: "Decay rate",          min: -127, max: 127, hint: "amplitude change per centisecond during decay" },
   { key: "ald", code: "ALD", label: "Sustain start level", min: 0,    max: 126, hint: "level at end of decay (start of sustain)" },
   { key: "as",  code: "AS",  label: "Sustain rate",        min: -127, max: 127, hint: "amplitude change per centisecond during sustain (until SOUND duration ends)" },
-  { key: "ar",  code: "AR",  label: "Release rate",        min: -127, max: 127, hint: "amplitude change per centisecond during release; usually negative" },
+  { key: "ar",  code: "AR",  label: "Release rate",        min: -127, max: 127, hint: "amplitude change per centisecond during release; usually negative. AR=0 plays indefinitely on a real BBC — enable Hold to audition that here (otherwise the release tail is capped at 2 s)." },
 ];
 
 const ENV_FIELDS: FieldSpec[] = [...PITCH_FIELDS, ...AMP_FIELDS];
