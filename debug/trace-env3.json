@@ -1,0 +1,146 @@
+[
+  {
+    "cycle": 0,
+    "byte": 240,
+    "byteHex": "0xf0",
+    "channel": 3,
+    "kind": "vol",
+    "field": 0,
+    "usedLatch": false
+  },
+  {
+    "cycle": 290,
+    "byte": 241,
+    "byteHex": "0xf1",
+    "channel": 3,
+    "kind": "vol",
+    "field": 1,
+    "usedLatch": false
+  },
+  {
+    "cycle": 239596,
+    "byte": 242,
+    "byteHex": "0xf2",
+    "channel": 3,
+    "kind": "vol",
+    "field": 2,
+    "usedLatch": false
+  },
+  {
+    "cycle": 399596,
+    "byte": 243,
+    "byteHex": "0xf3",
+    "channel": 3,
+    "kind": "vol",
+    "field": 3,
+    "usedLatch": false
+  },
+  {
+    "cycle": 799598,
+    "byte": 244,
+    "byteHex": "0xf4",
+    "channel": 3,
+    "kind": "vol",
+    "field": 4,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1119604,
+    "byte": 245,
+    "byteHex": "0xf5",
+    "channel": 3,
+    "kind": "vol",
+    "field": 5,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1439594,
+    "byte": 246,
+    "byteHex": "0xf6",
+    "channel": 3,
+    "kind": "vol",
+    "field": 6,
+    "usedLatch": false
+  },
+  {
+    "cycle": 1759596,
+    "byte": 247,
+    "byteHex": "0xf7",
+    "channel": 3,
+    "kind": "vol",
+    "field": 7,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2079610,
+    "byte": 248,
+    "byteHex": "0xf8",
+    "channel": 3,
+    "kind": "vol",
+    "field": 8,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2399596,
+    "byte": 249,
+    "byteHex": "0xf9",
+    "channel": 3,
+    "kind": "vol",
+    "field": 9,
+    "usedLatch": false
+  },
+  {
+    "cycle": 2719596,
+    "byte": 250,
+    "byteHex": "0xfa",
+    "channel": 3,
+    "kind": "vol",
+    "field": 10,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3039600,
+    "byte": 251,
+    "byteHex": "0xfb",
+    "channel": 3,
+    "kind": "vol",
+    "field": 11,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3359600,
+    "byte": 252,
+    "byteHex": "0xfc",
+    "channel": 3,
+    "kind": "vol",
+    "field": 12,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3679610,
+    "byte": 253,
+    "byteHex": "0xfd",
+    "channel": 3,
+    "kind": "vol",
+    "field": 13,
+    "usedLatch": false
+  },
+  {
+    "cycle": 3999596,
+    "byte": 254,
+    "byteHex": "0xfe",
+    "channel": 3,
+    "kind": "vol",
+    "field": 14,
+    "usedLatch": false
+  },
+  {
+    "cycle": 4319598,
+    "byte": 255,
+    "byteHex": "0xff",
+    "channel": 3,
+    "kind": "vol",
+    "field": 15,
+    "usedLatch": false
+  }
+]
